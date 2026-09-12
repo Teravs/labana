@@ -5,4 +5,3 @@ class AppConstants {
   static const String appTagline = 'Kelola Modal, Pahami Laba.';
   static const String setupSuccessMessage = 'Project berhasil dijalankan.';
 }
-

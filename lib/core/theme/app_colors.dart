@@ -48,4 +48,3 @@ class AppColors {
   static const Color error = Color(0xFFBA1A1A);
   static const Color darkError = Color(0xFFFFB4AB);
 }
-

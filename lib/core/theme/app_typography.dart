@@ -9,4 +9,3 @@ class AppTypography {
     return GoogleFonts.plusJakartaSansTextTheme(baseTextTheme);
   }
 }
-

@@ -168,4 +168,3 @@ class StarterScreen extends StatelessWidget {
     );
   }
 }
-
