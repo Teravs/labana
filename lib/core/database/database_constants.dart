@@ -36,4 +36,3 @@ class TableNames {
     reportArchives,
   ];
 }
-

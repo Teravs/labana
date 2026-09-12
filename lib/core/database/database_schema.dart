@@ -464,4 +464,3 @@ ON report_archives(period_start, period_end);
     await batch.commit(noResult: true);
   }
 }
-

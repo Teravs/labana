@@ -1,36 +1,123 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../features/home/presentation/screens/starter_screen.dart';
+import '../features/home/presentation/screens/home_screen.dart';
+import '../features/ingredients/presentation/screens/ingredients_screen.dart';
+import '../features/reports/presentation/screens/reports_screen.dart';
+import '../features/sales/presentation/screens/sales_screen.dart';
+import '../features/settings/presentation/screens/settings_screen.dart';
+import '../features/shell/presentation/screens/app_shell.dart';
 
 class AppRoutes {
   AppRoutes._();
 
-  // Root / Starter route
+  // Root route
   static const String root = '/';
 
-  // Planned feature routes for subsequent phases
+  // 5 Main Navigation Routes
   static const String home = '/home';
   static const String ingredients = '/ingredients';
-  static const String processedIngredients = '/processed-ingredients';
-  static const String products = '/products';
   static const String sales = '/sales';
   static const String reports = '/reports';
   static const String settings = '/settings';
+
+  // Future feature routes
+  static const String processedIngredients = '/processed-ingredients';
+  static const String products = '/products';
 }
 
 class AppRouter {
   AppRouter._();
 
+  static final GlobalKey<NavigatorState> _rootNavigatorKey =
+      GlobalKey<NavigatorState>();
+
   static final GoRouter router = GoRouter(
-    initialLocation: AppRoutes.root,
+    navigatorKey: _rootNavigatorKey,
+    initialLocation: AppRoutes.home,
     routes: <RouteBase>[
+      // Redirect root '/' ke '/home'
       GoRoute(
         path: AppRoutes.root,
-        name: 'root',
-        builder: (BuildContext context, GoRouterState state) {
-          return const StarterScreen();
-        },
+        redirect: (BuildContext context, GoRouterState state) => AppRoutes.home,
+      ),
+
+      // App Shell dengan 5 cabang navigasi
+      StatefulShellRoute.indexedStack(
+        builder:
+            (
+              BuildContext context,
+              GoRouterState state,
+              StatefulNavigationShell navigationShell,
+            ) {
+              return AppShell(navigationShell: navigationShell);
+            },
+        branches: <StatefulShellBranch>[
+          // 1. Home
+          StatefulShellBranch(
+            routes: <RouteBase>[
+              GoRoute(
+                path: AppRoutes.home,
+                name: 'home',
+                builder: (BuildContext context, GoRouterState state) {
+                  return const HomeScreen();
+                },
+              ),
+            ],
+          ),
+
+          // 2. Bahan
+          StatefulShellBranch(
+            routes: <RouteBase>[
+              GoRoute(
+                path: AppRoutes.ingredients,
+                name: 'ingredients',
+                builder: (BuildContext context, GoRouterState state) {
+                  return const IngredientsScreen();
+                },
+              ),
+            ],
+          ),
+
+          // 3. Penjualan
+          StatefulShellBranch(
+            routes: <RouteBase>[
+              GoRoute(
+                path: AppRoutes.sales,
+                name: 'sales',
+                builder: (BuildContext context, GoRouterState state) {
+                  return const SalesScreen();
+                },
+              ),
+            ],
+          ),
+
+          // 4. Laporan
+          StatefulShellBranch(
+            routes: <RouteBase>[
+              GoRoute(
+                path: AppRoutes.reports,
+                name: 'reports',
+                builder: (BuildContext context, GoRouterState state) {
+                  return const ReportsScreen();
+                },
+              ),
+            ],
+          ),
+
+          // 5. Pengaturan
+          StatefulShellBranch(
+            routes: <RouteBase>[
+              GoRoute(
+                path: AppRoutes.settings,
+                name: 'settings',
+                builder: (BuildContext context, GoRouterState state) {
+                  return const SettingsScreen();
+                },
+              ),
+            ],
+          ),
+        ],
       ),
     ],
   );

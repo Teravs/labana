@@ -10,9 +10,11 @@ class DatabaseMigrations {
     int oldVersion,
     int newVersion,
   ) async {
-    for (int targetVersion = oldVersion + 1;
-        targetVersion <= newVersion;
-        targetVersion++) {
+    for (
+      int targetVersion = oldVersion + 1;
+      targetVersion <= newVersion;
+      targetVersion++
+    ) {
       await _applyMigration(db, targetVersion);
     }
   }
@@ -26,4 +28,3 @@ class DatabaseMigrations {
     }
   }
 }
-

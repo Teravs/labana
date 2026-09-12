@@ -75,4 +75,3 @@ class DatabaseHelper {
     _database = testDb;
   }
 }
-
