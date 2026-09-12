@@ -15,9 +15,7 @@ class SettingsScreen extends StatelessWidget {
     final colorScheme = theme.colorScheme;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Pengaturan'),
-      ),
+      appBar: AppBar(title: const Text('Pengaturan')),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -114,8 +112,9 @@ class SettingsScreen extends StatelessWidget {
                 child: ListTile(
                   leading: const Icon(Icons.auto_delete_outlined),
                   title: const Text('Retensi Data'),
-                  subtitle:
-                      const Text('Batas waktu penyimpanan arsip transaksi'),
+                  subtitle: const Text(
+                    'Batas waktu penyimpanan arsip transaksi',
+                  ),
                   trailing: const Icon(Icons.chevron_right_rounded),
                   onTap: () => AppFeedback.showFeatureNotice(context),
                 ),
@@ -188,4 +187,3 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 }
-

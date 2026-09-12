@@ -39,11 +39,7 @@ class AppEmptyState extends StatelessWidget {
                   color: colorScheme.primary.withAlpha(20),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(
-                  icon,
-                  size: 38,
-                  color: colorScheme.primary,
-                ),
+                child: Icon(icon, size: 38, color: colorScheme.primary),
               ),
               const SizedBox(height: 20),
               Text(
@@ -78,4 +74,3 @@ class AppEmptyState extends StatelessWidget {
     );
   }
 }
-

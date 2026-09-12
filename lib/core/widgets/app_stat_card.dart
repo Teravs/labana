@@ -42,11 +42,7 @@ class AppStatCard extends StatelessWidget {
                   ),
                 ),
                 if (icon != null)
-                  Icon(
-                    icon,
-                    size: 18,
-                    color: iconColor ?? colorScheme.primary,
-                  ),
+                  Icon(icon, size: 18, color: iconColor ?? colorScheme.primary),
               ],
             ),
             const SizedBox(height: 12),
@@ -63,4 +59,3 @@ class AppStatCard extends StatelessWidget {
     );
   }
 }
-

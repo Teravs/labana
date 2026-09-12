@@ -16,9 +16,7 @@ class HomeScreen extends StatelessWidget {
     final colorScheme = theme.colorScheme;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(AppConstants.appName),
-      ),
+      appBar: AppBar(title: Text(AppConstants.appName)),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -32,9 +30,7 @@ class HomeScreen extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: colorScheme.primaryContainer.withAlpha(80),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: colorScheme.primary.withAlpha(40),
-                  ),
+                  border: Border.all(color: colorScheme.primary.withAlpha(40)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -124,4 +120,3 @@ class HomeScreen extends StatelessWidget {
     );
   }
 }
-

@@ -16,9 +16,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Laporan'),
-      ),
+      appBar: AppBar(title: const Text('Laporan')),
       body: SafeArea(
         child: Column(
           children: [
@@ -55,4 +53,3 @@ class _ReportsScreenState extends State<ReportsScreen> {
     );
   }
 }
-

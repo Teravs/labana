@@ -10,15 +10,12 @@ class SalesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Penjualan'),
-      ),
+      appBar: AppBar(title: const Text('Penjualan')),
       body: SafeArea(
         child: AppEmptyState(
           icon: Icons.receipt_long_outlined,
           title: 'Belum ada transaksi.',
-          message:
-              'Transaksi penjualan yang kamu buat akan muncul di sini.',
+          message: 'Transaksi penjualan yang kamu buat akan muncul di sini.',
           actionLabel: 'Penjualan',
           onActionPressed: () => AppFeedback.showFeatureNotice(context),
         ),
@@ -26,4 +23,3 @@ class SalesScreen extends StatelessWidget {
     );
   }
 }
-

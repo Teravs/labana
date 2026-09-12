@@ -1,13 +1,49 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:labana/core/constants/app_constants.dart';
+import 'package:labana/core/database/database_helper.dart';
 import 'package:labana/core/theme/theme_controller.dart';
 import 'package:labana/main.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() {
-  setUp(() {
+  late Database testDb;
+
+  setUpAll(() {
+    sqfliteFfiInit();
+    databaseFactory = databaseFactoryFfi;
+  });
+
+  setUp(() async {
+    testDb = await openDatabase(
+      inMemoryDatabasePath,
+      version: 1,
+      onConfigure: DatabaseHelper.onConfigure,
+      onCreate: DatabaseHelper.onCreate,
+      onUpgrade: DatabaseHelper.onUpgrade,
+    );
+    DatabaseHelper.instance.setTestDatabase(testDb);
     appThemeModeNotifier.value = ThemeMode.system;
   });
+
+  tearDown(() async {
+    await testDb.close();
+    DatabaseHelper.instance.setTestDatabase(null);
+  });
+
+  /// Helper untuk menunggu operasi asynchronous SQLite dan animasi widget selesai.
+  Future<void> settleAsync(WidgetTester tester) async {
+    await tester.pump();
+    await tester.runAsync(
+      () => Future.delayed(const Duration(milliseconds: 100)),
+    );
+    await tester.pump();
+    await tester.pumpAndSettle();
+    await tester.runAsync(
+      () => Future.delayed(const Duration(milliseconds: 100)),
+    );
+    await tester.pump();
+  }
 
   // ---------------------------------------------------------------------------
   // Test 1 & 2: App dapat dijalankan & Home tampil
@@ -18,21 +54,18 @@ void main() {
       await tester.pumpWidget(const LabanaApp());
       await tester.pumpAndSettle();
 
-      // Verifikasi Home header & branding
       expect(
         find.text('Selamat datang di ${AppConstants.appName}'),
         findsOneWidget,
       );
       expect(find.text(AppConstants.appTagline), findsOneWidget);
 
-      // Verifikasi stat cards placeholder
       expect(find.text('Omzet Hari Ini'), findsOneWidget);
       expect(find.text('Modal / HPP'), findsOneWidget);
       expect(find.text('Laba'), findsOneWidget);
       expect(find.text('Transaksi'), findsOneWidget);
       expect(find.text('—'), findsNWidgets(4));
 
-      // Verifikasi quick actions
       expect(find.text('+ Penjualan'), findsOneWidget);
       expect(find.text('+ Bahan'), findsOneWidget);
       expect(find.text('+ Produk / Resep'), findsOneWidget);
@@ -57,25 +90,112 @@ void main() {
   );
 
   // ---------------------------------------------------------------------------
-  // Test 4: User dapat berpindah ke halaman Bahan
+  // Test 4: Bahan Mentah CRUD Flow (Tambah, Validasi, Tampil, Edit, Nonaktif, Aktifkan)
   // ---------------------------------------------------------------------------
-  testWidgets('Test 4: User dapat berpindah ke halaman Bahan', (
+  testWidgets('Test 4: Alur CRUD Bahan Mentah bekerja dengan benar', (
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(const LabanaApp());
     await tester.pumpAndSettle();
 
-    // Tap tab Bahan di NavigationBar
+    // 1. Pindah ke halaman Bahan
     await tester.tap(
       find.descendant(
         of: find.byType(NavigationBar),
         matching: find.text('Bahan'),
       ),
     );
+    await settleAsync(tester);
+
+    // Verifikasi empty state awal
+    expect(find.text('Belum ada bahan mentah'), findsOneWidget);
+    expect(find.text('Bahan Mentah'), findsWidgets);
+    expect(find.text('Bahan Olahan'), findsOneWidget);
+
+    // 2. Buka form tambah bahan
+    await tester.tap(find.text('Tambah Bahan').first);
     await tester.pumpAndSettle();
 
-    expect(find.text('Belum ada bahan.'), findsOneWidget);
-    expect(find.text('Tambah Bahan'), findsOneWidget);
+    expect(find.text('Tambah Bahan Mentah'), findsOneWidget);
+
+    // 3. Uji validasi nama kosong
+    await tester.tap(find.text('Simpan'));
+    await tester.pumpAndSettle();
+    expect(find.text('Nama bahan wajib diisi.'), findsOneWidget);
+
+    // 4. Masukkan nama valid "Gula Pasir" dan simpan
+    await tester.enterText(find.byType(TextFormField), 'Gula Pasir');
+    await tester.tap(find.text('Simpan'));
+    await settleAsync(tester);
+
+    // Verifikasi item muncul di daftar aktif
+    expect(find.text('Gula Pasir'), findsOneWidget);
+    expect(find.text('Bahan berhasil ditambahkan.'), findsOneWidget);
+
+    // Biarkan SnackBar menghilang agar tidak menghalangi tombol
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pumpAndSettle();
+
+    // 5. Uji Edit Bahan
+    await tester.tap(find.byIcon(Icons.more_vert_rounded));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Edit'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Edit Bahan Mentah'), findsOneWidget);
+    await tester.enterText(find.byType(TextFormField), 'Gula Pasir Premium');
+    await tester.tap(find.text('Simpan Perubahan'));
+    await settleAsync(tester);
+
+    expect(find.text('Gula Pasir Premium'), findsOneWidget);
+    expect(find.text('Bahan berhasil diperbarui.'), findsOneWidget);
+
+    // Biarkan SnackBar menghilang
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pumpAndSettle();
+
+    // 6. Uji Nonaktifkan Bahan (dengan konfirmasi)
+    await tester.tap(find.byIcon(Icons.more_vert_rounded));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Nonaktifkan'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Nonaktifkan bahan?'), findsOneWidget);
+
+    // Konfirmasi nonaktifkan
+    await tester.tap(find.widgetWithText(FilledButton, 'Nonaktifkan'));
+    await settleAsync(tester);
+
+    expect(find.text('Bahan dinonaktifkan.'), findsOneWidget);
+    expect(find.text('Belum ada bahan mentah'), findsOneWidget);
+
+    // Biarkan SnackBar hilang
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pumpAndSettle();
+
+    // 7. Lihat di tab Nonaktif dan aktifkan kembali
+    await tester.tap(find.text('Nonaktif'));
+    await settleAsync(tester);
+
+    expect(find.text('Gula Pasir Premium'), findsOneWidget);
+    expect(find.text('Aktifkan Kembali'), findsOneWidget);
+
+    await tester.tap(find.text('Aktifkan Kembali'));
+    await settleAsync(tester);
+
+    expect(find.text('Bahan berhasil diaktifkan kembali.'), findsOneWidget);
+    expect(find.text('Tidak ada bahan nonaktif'), findsOneWidget);
+
+    // Biarkan SnackBar hilang
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pumpAndSettle();
+
+    // Kembali ke tab Aktif
+    await tester.tap(find.text('Aktif'));
+    await settleAsync(tester);
+    expect(find.text('Gula Pasir Premium'), findsOneWidget);
   });
 
   // ---------------------------------------------------------------------------
@@ -87,7 +207,6 @@ void main() {
     await tester.pumpWidget(const LabanaApp());
     await tester.pumpAndSettle();
 
-    // Tap tab Penjualan
     await tester.tap(
       find.descendant(
         of: find.byType(NavigationBar),
@@ -112,7 +231,6 @@ void main() {
     await tester.pumpWidget(const LabanaApp());
     await tester.pumpAndSettle();
 
-    // Tap tab Laporan
     await tester.tap(
       find.descendant(
         of: find.byType(NavigationBar),
@@ -136,7 +254,6 @@ void main() {
     await tester.pumpWidget(const LabanaApp());
     await tester.pumpAndSettle();
 
-    // Tap tab Pengaturan
     await tester.tap(
       find.descendant(
         of: find.byType(NavigationBar),
@@ -163,7 +280,6 @@ void main() {
     await tester.pumpWidget(const LabanaApp());
     await tester.pumpAndSettle();
 
-    // Pergi ke Pengaturan
     await tester.tap(
       find.descendant(
         of: find.byType(NavigationBar),
@@ -172,17 +288,14 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // Pilih mode Gelap
     await tester.tap(find.text('Gelap'));
     await tester.pumpAndSettle();
     expect(appThemeModeNotifier.value, ThemeMode.dark);
 
-    // Pilih mode Terang
     await tester.tap(find.text('Terang'));
     await tester.pumpAndSettle();
     expect(appThemeModeNotifier.value, ThemeMode.light);
 
-    // Pilih mode Sistem
     await tester.tap(find.text('Sistem'));
     await tester.pumpAndSettle();
     expect(appThemeModeNotifier.value, ThemeMode.system);
