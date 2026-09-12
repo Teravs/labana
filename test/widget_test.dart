@@ -1,30 +1,35 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
+import 'package:labana/core/constants/app_constants.dart';
+import 'package:labana/core/theme/theme_controller.dart';
 import 'package:labana/main.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('LabanaApp starter smoke test', (WidgetTester tester) async {
+    // Reset theme mode notifier before test
+    appThemeModeNotifier.value = ThemeMode.system;
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    await tester.pumpWidget(const LabanaApp());
+    await tester.pumpAndSettle();
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    // Verifikasi branding dan pesan awal
+    expect(find.text(AppConstants.appName), findsOneWidget);
+    expect(find.text(AppConstants.appTagline), findsOneWidget);
+    expect(find.text(AppConstants.setupSuccessMessage), findsOneWidget);
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    // Verifikasi kontrol pemilihan mode tema
+    expect(find.text('Pilihan Mode Tema'), findsOneWidget);
+    expect(find.text('Sistem'), findsOneWidget);
+    expect(find.text('Terang'), findsOneWidget);
+    expect(find.text('Gelap'), findsOneWidget);
+
+    // Verifikasi interaksi perubahan mode tema
+    await tester.tap(find.text('Gelap'));
+    await tester.pumpAndSettle();
+    expect(appThemeModeNotifier.value, ThemeMode.dark);
+
+    await tester.tap(find.text('Terang'));
+    await tester.pumpAndSettle();
+    expect(appThemeModeNotifier.value, ThemeMode.light);
   });
 }
