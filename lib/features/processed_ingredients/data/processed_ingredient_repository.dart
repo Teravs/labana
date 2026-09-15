@@ -5,19 +5,25 @@ import '../../../core/database/database_helper.dart';
 import '../../ingredients/data/ingredient_repository.dart';
 import '../models/processed_component.dart';
 import '../models/processed_ingredient.dart';
+import '../services/processed_dependency_validator.dart';
 import 'processed_component_repository.dart';
 
 /// Repository untuk mengelola data bahan olahan (`processed_ingredients`).
 class ProcessedIngredientRepository {
   final DatabaseHelper _dbHelper;
   final ProcessedComponentRepository _componentRepo;
+  final ProcessedDependencyValidator _dependencyValidator;
 
   ProcessedIngredientRepository({
     DatabaseHelper? dbHelper,
     ProcessedComponentRepository? componentRepo,
+    ProcessedDependencyValidator? dependencyValidator,
   }) : _dbHelper = dbHelper ?? DatabaseHelper.instance,
        _componentRepo =
-           componentRepo ?? ProcessedComponentRepository(dbHelper: dbHelper);
+           componentRepo ?? ProcessedComponentRepository(dbHelper: dbHelper),
+       _dependencyValidator =
+           dependencyValidator ??
+           ProcessedDependencyValidator(dbHelper: dbHelper);
 
   Future<Database> get _db => _dbHelper.database;
 
@@ -100,6 +106,13 @@ class ProcessedIngredientRepository {
     }
 
     final db = await _db;
+
+    // Validasi ketergantungan (mencegah circular dependency)
+    await _dependencyValidator.validateComponents(
+      null,
+      components,
+      executor: db,
+    );
 
     // Cek duplikasi nama pada bahan olahan aktif (case-insensitive)
     final existing = await db.query(
@@ -189,6 +202,9 @@ class ProcessedIngredientRepository {
     }
 
     final db = await _db;
+
+    // Validasi ketergantungan (mencegah circular dependency untuk update)
+    await _dependencyValidator.validateComponents(id, components, executor: db);
 
     // Pastikan data lama ada
     final current = await getById(id);
@@ -294,12 +310,38 @@ class ProcessedIngredientRepository {
   }
 
   /// Menghapus bahan olahan secara permanen (CASCADE SQLite akan menghapus komponen).
+  /// Mencegah penghapusan jika bahan olahan ini masih digunakan sebagai child oleh bahan olahan lain.
   Future<void> delete(int id) async {
     final db = await _db;
+
+    // Periksa apakah masih dirujuk sebagai child oleh bahan olahan lain
+    final referencing = await db.query(
+      TableNames.processedComponents,
+      columns: ['id'],
+      where: 'child_processed_id = ?',
+      whereArgs: [id],
+      limit: 1,
+    );
+
+    if (referencing.isNotEmpty) {
+      throw const ValidationException(
+        'Bahan olahan ini masih digunakan oleh bahan olahan lain dan tidak dapat dihapus.',
+      );
+    }
+
     await db.delete(
       TableNames.processedIngredients,
       where: 'id = ?',
       whereArgs: [id],
+    );
+  }
+
+  /// Mengambil daftar bahan olahan anak yang aman dipilih tanpa membentuk siklus.
+  Future<List<ProcessedIngredient>> getValidChildCandidates({
+    int? currentProcessedId,
+  }) async {
+    return await _dependencyValidator.getValidChildCandidates(
+      currentProcessedId: currentProcessedId,
     );
   }
 }

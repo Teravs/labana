@@ -6,6 +6,7 @@ import '../../../ingredients/data/ingredient_price_repository.dart';
 import '../../../ingredients/data/ingredient_repository.dart';
 import '../../../ingredients/models/ingredient.dart';
 import '../../../ingredients/models/ingredient_price.dart';
+import '../../data/processed_ingredient_repository.dart';
 import '../../models/processed_component.dart';
 import '../../models/processed_ingredient.dart';
 import '../../services/processed_ingredient_calculator.dart';
@@ -13,6 +14,7 @@ import '../../services/processed_ingredient_calculator.dart';
 class _ComponentFormEntry {
   String type;
   int? ingredientId;
+  int? childProcessedId;
   final TextEditingController quantityController;
   String unit;
   final TextEditingController otherCostController;
@@ -21,6 +23,7 @@ class _ComponentFormEntry {
   _ComponentFormEntry({
     required this.type,
     this.ingredientId,
+    this.childProcessedId,
     String initialQuantity = '',
     this.unit = 'g',
     String initialOtherCost = '',
@@ -40,6 +43,7 @@ class _ComponentFormEntry {
 class ProcessedIngredientFormSheet extends StatefulWidget {
   final ProcessedIngredient? initialProcessedIngredient;
   final List<ProcessedComponent>? initialComponents;
+  final ProcessedIngredientRepository? processedRepository;
   final IngredientRepository? ingredientRepository;
   final IngredientPriceRepository? priceRepository;
   final Future<void> Function({
@@ -54,6 +58,7 @@ class ProcessedIngredientFormSheet extends StatefulWidget {
     super.key,
     this.initialProcessedIngredient,
     this.initialComponents,
+    this.processedRepository,
     this.ingredientRepository,
     this.priceRepository,
     required this.onSave,
@@ -63,6 +68,7 @@ class ProcessedIngredientFormSheet extends StatefulWidget {
     BuildContext context, {
     ProcessedIngredient? initialProcessedIngredient,
     List<ProcessedComponent>? initialComponents,
+    ProcessedIngredientRepository? processedRepository,
     IngredientRepository? ingredientRepository,
     IngredientPriceRepository? priceRepository,
     required Future<void> Function({
@@ -83,6 +89,7 @@ class ProcessedIngredientFormSheet extends StatefulWidget {
       builder: (context) => ProcessedIngredientFormSheet(
         initialProcessedIngredient: initialProcessedIngredient,
         initialComponents: initialComponents,
+        processedRepository: processedRepository,
         ingredientRepository: ingredientRepository,
         priceRepository: priceRepository,
         onSave: onSave,
@@ -102,12 +109,16 @@ class _ProcessedIngredientFormSheetState
   late final TextEditingController _resultQtyController;
   late String _resultUnit;
 
+  late final ProcessedIngredientRepository _processedRepo;
   late final IngredientRepository _ingredientRepo;
   late final IngredientPriceRepository _priceRepo;
 
   List<Ingredient> _availableRawIngredients = [];
+  List<ProcessedIngredient> _availableProcessedCandidates = [];
   Map<int, List<IngredientPrice>> _pricesByIngredient = {};
   Map<int, String> _ingredientNamesById = {};
+  Map<int, ProcessedIngredient> _processedIngredientsById = {};
+  Map<int, List<ProcessedComponent>> _processedComponentsById = {};
 
   final List<_ComponentFormEntry> _components = [];
 
@@ -135,6 +146,8 @@ class _ProcessedIngredientFormSheetState
   @override
   void initState() {
     super.initState();
+    _processedRepo =
+        widget.processedRepository ?? ProcessedIngredientRepository();
     _ingredientRepo = widget.ingredientRepository ?? IngredientRepository();
     _priceRepo = widget.priceRepository ?? IngredientPriceRepository();
 
@@ -149,7 +162,7 @@ class _ProcessedIngredientFormSheetState
     );
     _resultUnit = initial?.resultUnit ?? 'ml';
 
-    _loadRawIngredientsAndPrices();
+    _loadInitialData();
   }
 
   @override
@@ -162,7 +175,7 @@ class _ProcessedIngredientFormSheetState
     super.dispose();
   }
 
-  Future<void> _loadRawIngredientsAndPrices() async {
+  Future<void> _loadInitialData() async {
     try {
       final rawList = await _ingredientRepo.getAll(status: 'active');
       final namesMap = <int, String>{};
@@ -176,9 +189,41 @@ class _ProcessedIngredientFormSheetState
         }
       }
 
+      // Load bahan olahan aktif & kandidat valid untuk mencegah circular dependency
+      final allActiveProcessed = await _processedRepo.getAll(status: 'active');
+      final validCandidates = await _processedRepo.getValidChildCandidates(
+        currentProcessedId: widget.initialProcessedIngredient?.id,
+      );
+      final procMap = <int, ProcessedIngredient>{};
+      final procCompMap = <int, List<ProcessedComponent>>{};
+
+      for (final proc in allActiveProcessed) {
+        if (proc.id != null) {
+          procMap[proc.id!] = proc;
+          final comps = await _processedRepo.getComponents(proc.id!);
+          procCompMap[proc.id!] = comps;
+
+          // Ambil harga bahan mentah yang dibutuhkan oleh olahan anak jika belum ada
+          for (final c in comps) {
+            if (c.ingredientId != null &&
+                !priceMap.containsKey(c.ingredientId!)) {
+              final prices = await _priceRepo.getPrices(c.ingredientId!);
+              priceMap[c.ingredientId!] = prices;
+              final ing = await _ingredientRepo.getById(c.ingredientId!);
+              if (ing != null) {
+                namesMap[c.ingredientId!] = ing.name;
+              }
+            }
+          }
+        }
+      }
+
       if (mounted) {
         setState(() {
           _availableRawIngredients = rawList;
+          _availableProcessedCandidates = validCandidates;
+          _processedIngredientsById = procMap;
+          _processedComponentsById = procCompMap;
           _ingredientNamesById = namesMap;
           _pricesByIngredient = priceMap;
 
@@ -190,8 +235,13 @@ class _ProcessedIngredientFormSheetState
                 _ComponentFormEntry(
                   type: comp.componentType,
                   ingredientId: comp.ingredientId,
+                  childProcessedId: comp.childProcessedId,
                   initialQuantity: comp.formattedQuantity ?? '',
-                  unit: comp.unit ?? 'g',
+                  unit:
+                      comp.unit ??
+                      (comp.isProcessed
+                          ? (procMap[comp.childProcessedId]?.resultUnit ?? 'ml')
+                          : 'g'),
                   initialOtherCost: comp.otherCost?.toString() ?? '',
                   initialLabel: comp.label ?? '',
                 ),
@@ -207,6 +257,14 @@ class _ProcessedIngredientFormSheetState
                   unit: 'g',
                 ),
               );
+            } else if (validCandidates.isNotEmpty) {
+              _components.add(
+                _ComponentFormEntry(
+                  type: ProcessedComponent.typeProcessed,
+                  childProcessedId: validCandidates.first.id,
+                  unit: validCandidates.first.resultUnit,
+                ),
+              );
             }
           }
 
@@ -217,7 +275,7 @@ class _ProcessedIngredientFormSheetState
       if (mounted) {
         setState(() {
           _isLoadingInitial = false;
-          _errorMessage = 'Gagal memuat data bahan mentah: $e';
+          _errorMessage = 'Gagal memuat data: $e';
         });
       }
     }
@@ -241,6 +299,30 @@ class _ProcessedIngredientFormSheetState
           type: ProcessedComponent.typeIngredient,
           ingredientId: _availableRawIngredients.first.id,
           unit: 'g',
+        ),
+      );
+    });
+  }
+
+  void _addProcessedComponent() {
+    if (_availableProcessedCandidates.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Tidak ada bahan olahan yang dapat dipilih (atau untuk mencegah ketergantungan melingkar).',
+          ),
+        ),
+      );
+      return;
+    }
+
+    final firstCandidate = _availableProcessedCandidates.first;
+    setState(() {
+      _components.add(
+        _ComponentFormEntry(
+          type: ProcessedComponent.typeProcessed,
+          childProcessedId: firstCandidate.id,
+          unit: firstCandidate.resultUnit,
         ),
       );
     });
@@ -302,6 +384,21 @@ class _ProcessedIngredientFormSheetState
                 : null,
           ),
         );
+      } else if (entry.type == ProcessedComponent.typeProcessed) {
+        final qty = double.tryParse(entry.quantityController.text.trim());
+        final child = entry.childProcessedId != null
+            ? _processedIngredientsById[entry.childProcessedId!]
+            : null;
+        parsedComponents.add(
+          ProcessedComponent(
+            id: i,
+            componentType: ProcessedComponent.typeProcessed,
+            childProcessedId: entry.childProcessedId,
+            quantity: qty ?? 0,
+            unit: entry.unit,
+            childProcessedName: child?.name,
+          ),
+        );
       } else {
         final cost = int.tryParse(entry.otherCostController.text.trim());
         parsedComponents.add(
@@ -320,6 +417,8 @@ class _ProcessedIngredientFormSheetState
       components: parsedComponents,
       pricesByIngredientId: _pricesByIngredient,
       ingredientNamesById: _ingredientNamesById,
+      processedIngredientsById: _processedIngredientsById,
+      processedComponentsById: _processedComponentsById,
       calculationDate: nowStr,
     );
   }
@@ -373,6 +472,29 @@ class _ProcessedIngredientFormSheetState
             unit: entry.unit,
           ),
         );
+      } else if (entry.type == ProcessedComponent.typeProcessed) {
+        if (entry.childProcessedId == null) {
+          setState(() {
+            _errorMessage = 'Pilih bahan olahan untuk semua komponen.';
+          });
+          return;
+        }
+        final qty = double.tryParse(entry.quantityController.text.trim());
+        if (qty == null || qty <= 0) {
+          setState(() {
+            _errorMessage =
+                'Jumlah penggunaan bahan olahan harus lebih dari 0.';
+          });
+          return;
+        }
+        parsedComponents.add(
+          ProcessedComponent(
+            componentType: ProcessedComponent.typeProcessed,
+            childProcessedId: entry.childProcessedId,
+            quantity: qty,
+            unit: entry.unit,
+          ),
+        );
       } else {
         final cost = int.tryParse(entry.otherCostController.text.trim());
         if (cost == null || cost < 0) {
@@ -386,6 +508,7 @@ class _ProcessedIngredientFormSheetState
           ProcessedComponent(
             componentType: ProcessedComponent.typeOther,
             otherCost: cost,
+            label: entry.labelController.text.trim(),
           ),
         );
       }
@@ -619,24 +742,30 @@ class _ProcessedIngredientFormSheetState
                     const SizedBox(height: 12),
 
                     // Tombol Tambah Komponen
-                    Row(
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
                       children: [
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: _isSaving
-                                ? null
-                                : _addIngredientComponent,
-                            icon: const Icon(Icons.add_rounded, size: 18),
-                            label: const Text('Bahan Mentah'),
+                        OutlinedButton.icon(
+                          onPressed: _isSaving ? null : _addIngredientComponent,
+                          icon: const Icon(
+                            Icons.inventory_2_outlined,
+                            size: 16,
                           ),
+                          label: const Text('Bahan Mentah'),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: _isSaving ? null : _addOtherComponent,
-                            icon: const Icon(Icons.add_rounded, size: 18),
-                            label: const Text('Biaya Lainnya'),
+                        OutlinedButton.icon(
+                          onPressed: _isSaving ? null : _addProcessedComponent,
+                          icon: const Icon(Icons.blender_outlined, size: 16),
+                          label: const Text('Bahan Olahan'),
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: _isSaving ? null : _addOtherComponent,
+                          icon: const Icon(
+                            Icons.attach_money_rounded,
+                            size: 16,
                           ),
+                          label: const Text('Biaya Lainnya'),
                         ),
                       ],
                     ),
@@ -682,6 +811,42 @@ class _ProcessedIngredientFormSheetState
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final isIngredient = entry.type == ProcessedComponent.typeIngredient;
+    final isProcessed = entry.type == ProcessedComponent.typeProcessed;
+
+    final IconData headerIcon;
+    final Color headerColor;
+    final String headerTitle;
+
+    if (isIngredient) {
+      headerIcon = Icons.inventory_2_outlined;
+      headerColor = colorScheme.primary;
+      headerTitle = 'Bahan Mentah';
+    } else if (isProcessed) {
+      headerIcon = Icons.blender_outlined;
+      headerColor = colorScheme.tertiary;
+      headerTitle = 'Bahan Olahan';
+    } else {
+      headerIcon = Icons.attach_money_rounded;
+      headerColor = colorScheme.secondary;
+      headerTitle = 'Biaya Lainnya / Pelengkap';
+    }
+
+    // Untuk bahan olahan, siapkan opsi child (termasuk candidate valid & child yang sedang terpilih)
+    final childOptions = <ProcessedIngredient>[];
+    if (isProcessed) {
+      final seenIds = <int>{};
+      for (final cand in _availableProcessedCandidates) {
+        if (cand.id != null) {
+          seenIds.add(cand.id!);
+          childOptions.add(cand);
+        }
+      }
+      if (entry.childProcessedId != null &&
+          !seenIds.contains(entry.childProcessedId) &&
+          _processedIngredientsById.containsKey(entry.childProcessedId)) {
+        childOptions.add(_processedIngredientsById[entry.childProcessedId]!);
+      }
+    }
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -702,23 +867,15 @@ class _ProcessedIngredientFormSheetState
                 Expanded(
                   child: Row(
                     children: [
-                      Icon(
-                        isIngredient
-                            ? Icons.inventory_2_outlined
-                            : Icons.attach_money_rounded,
-                        size: 16,
-                        color: colorScheme.primary,
-                      ),
+                      Icon(headerIcon, size: 16, color: headerColor),
                       const SizedBox(width: 6),
                       Flexible(
                         child: Text(
-                          isIngredient
-                              ? 'Bahan Mentah'
-                              : 'Biaya Lainnya / Pelengkap',
+                          headerTitle,
                           overflow: TextOverflow.ellipsis,
                           style: theme.textTheme.labelMedium?.copyWith(
                             fontWeight: FontWeight.w700,
-                            color: colorScheme.primary,
+                            color: headerColor,
                           ),
                         ),
                       ),
@@ -785,6 +942,105 @@ class _ProcessedIngredientFormSheetState
                       decoration: const InputDecoration(
                         labelText: 'Jumlah',
                         hintText: 'Misal: 500',
+                        isDense: true,
+                      ),
+                      validator: (val) {
+                        if (val == null || val.trim().isEmpty) {
+                          return 'Isi jumlah';
+                        }
+                        final numVal = double.tryParse(val);
+                        if (numVal == null || numVal <= 0) {
+                          return 'Harus > 0';
+                        }
+                        return null;
+                      },
+                      onChanged: (_) => setState(() {}),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    flex: 2,
+                    child: DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      initialValue: entry.unit,
+                      decoration: const InputDecoration(
+                        labelText: 'Satuan',
+                        isDense: true,
+                      ),
+                      items: _componentUnits.map((u) {
+                        return DropdownMenuItem(
+                          value: u.key,
+                          child: Text(u.value),
+                        );
+                      }).toList(),
+                      onChanged: _isSaving
+                          ? null
+                          : (newUnit) {
+                              if (newUnit != null) {
+                                setState(() => entry.unit = newUnit);
+                              }
+                            },
+                    ),
+                  ),
+                ],
+              ),
+            ] else if (isProcessed) ...[
+              // Dropdown Pilihan Bahan Olahan
+              DropdownButtonFormField<int>(
+                isExpanded: true,
+                initialValue: entry.childProcessedId,
+                decoration: const InputDecoration(
+                  labelText: 'Pilih bahan olahan',
+                  isDense: true,
+                ),
+                items: childOptions.map((proc) {
+                  return DropdownMenuItem<int>(
+                    value: proc.id,
+                    child: Text(
+                      '${proc.name} (${proc.formattedResultQuantity} ${proc.resultUnit})',
+                    ),
+                  );
+                }).toList(),
+                onChanged: _isSaving
+                    ? null
+                    : (val) {
+                        setState(() {
+                          entry.childProcessedId = val;
+                          final child = val != null
+                              ? _processedIngredientsById[val]
+                              : null;
+                          if (child != null) {
+                            entry.unit = child.resultUnit;
+                          }
+                        });
+                      },
+                validator: (val) {
+                  if (val == null) return 'Pilih bahan olahan';
+                  return null;
+                },
+              ),
+              const SizedBox(height: 10),
+
+              // Input Kuantitas & Satuan Penggunaan
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    flex: 3,
+                    child: TextFormField(
+                      controller: entry.quantityController,
+                      enabled: !_isSaving,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(
+                          RegExp(r'^\d*\.?\d*'),
+                        ),
+                      ],
+                      decoration: const InputDecoration(
+                        labelText: 'Jumlah',
+                        hintText: 'Misal: 100',
                         isDense: true,
                       ),
                       validator: (val) {

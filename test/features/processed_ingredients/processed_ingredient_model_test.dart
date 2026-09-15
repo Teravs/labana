@@ -105,5 +105,38 @@ void main() {
       expect(toMapResult['other_cost'], 1000);
       expect(toMapResult['ingredient_id'], isNull);
     });
+
+    test(
+      'Komponen processed: fromMap & toMap (childProcessedName tidak dipersist)',
+      () {
+        final map = {
+          'id': 12,
+          'processed_ingredient_id': 2,
+          'component_type': 'processed',
+          'ingredient_id': null,
+          'child_processed_id': 1,
+          'quantity': 250.0,
+          'unit': 'ml',
+          'other_cost': null,
+          'child_processed_name': 'Larutan Gula',
+        };
+
+        final component = ProcessedComponent.fromMap(map);
+        expect(component.isIngredient, isFalse);
+        expect(component.isOther, isFalse);
+        expect(component.isProcessed, isTrue);
+        expect(component.childProcessedId, 1);
+        expect(component.childProcessedName, 'Larutan Gula');
+        expect(component.quantity, 250.0);
+        expect(component.unit, 'ml');
+
+        final toMapResult = component.toMap();
+        expect(toMapResult['component_type'], 'processed');
+        expect(toMapResult['child_processed_id'], 1);
+        expect(toMapResult['quantity'], 250.0);
+        expect(toMapResult['unit'], 'ml');
+        expect(toMapResult.containsKey('child_processed_name'), isFalse);
+      },
+    );
   });
 }

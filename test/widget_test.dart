@@ -5,6 +5,8 @@ import 'package:labana/core/database/database_helper.dart';
 import 'package:labana/core/theme/theme_controller.dart';
 import 'package:labana/features/ingredients/data/ingredient_price_repository.dart';
 import 'package:labana/features/ingredients/data/ingredient_repository.dart';
+import 'package:labana/features/processed_ingredients/data/processed_ingredient_repository.dart';
+import 'package:labana/features/processed_ingredients/models/processed_component.dart';
 import 'package:labana/main.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
@@ -35,7 +37,7 @@ void main() {
 
   /// Helper untuk menunggu operasi asynchronous SQLite dan animasi widget selesai.
   Future<void> settleAsync(WidgetTester tester) async {
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < 10; i++) {
       await tester.pump();
       await tester.runAsync(
         () => Future.delayed(const Duration(milliseconds: 100)),
@@ -604,6 +606,211 @@ void main() {
       await settleAsync(tester);
       expect(find.text('Simple Syrup'), findsOneWidget);
       debugPrint('[Test 12] SELESAI');
+    },
+  );
+
+  // ---------------------------------------------------------------------------
+  // Test 13: Tahap 7 — Nested Bahan Olahan & Circular Dependency Prevention
+  // ---------------------------------------------------------------------------
+  testWidgets(
+    'Test 13: Nested Bahan Olahan, live cost preview, detail resep, dan circular dependency check',
+    (WidgetTester tester) async {
+      debugPrint(
+        '[Test 13] Langkah 1: Setup data awal (Bahan Mentah Gula Pasir)',
+      );
+      final ingRepo = IngredientRepository();
+      final priceRepo = IngredientPriceRepository();
+      final procRepo = ProcessedIngredientRepository();
+
+      late final int syrupId;
+      await tester.runAsync(() async {
+        final gula = await ingRepo.create('Gula Pasir');
+        await priceRepo.createPrice(
+          ingredientId: gula.id!,
+          purchaseQuantity: 1,
+          purchaseUnit: 'kg',
+          price: 15000,
+          effectiveFrom: '2026-01-01',
+          isDefault: true,
+        );
+
+        debugPrint(
+          '[Test 13] Langkah 2: Buat child bahan olahan: Simple Syrup',
+        );
+        final syrup = await procRepo.create(
+          name: 'Simple Syrup',
+          resultQuantity: 750,
+          resultUnit: 'ml',
+          components: [
+            const ProcessedComponent(
+              componentType: ProcessedComponent.typeIngredient,
+              ingredientId: 1, // gula
+              quantity: 500,
+              unit: 'g',
+            ),
+            const ProcessedComponent(
+              componentType: ProcessedComponent.typeOther,
+              otherCost: 1000,
+              label: 'Air',
+            ),
+          ],
+        );
+        syrupId = syrup.id!;
+      });
+
+      debugPrint(
+        '[Test 13] Langkah 3: Buka aplikasi & navigasi ke tab Bahan Olahan',
+      );
+      await tester.pumpWidget(const LabanaApp());
+      await settleAsync(tester);
+
+      await tester.tap(
+        find.descendant(
+          of: find.byType(NavigationBar),
+          matching: find.text('Bahan'),
+        ),
+      );
+      await settleAsync(tester);
+
+      await tester.tap(find.text('Bahan Olahan'));
+      await settleAsync(tester);
+
+      expect(find.text('Simple Syrup'), findsOneWidget);
+
+      debugPrint(
+        '[Test 13] Langkah 4: Buka modal Tambah Bahan Olahan untuk membuat Teh Manis Base',
+      );
+      await tester.tap(find.text('Tambah Bahan Olahan').first);
+      await settleAsync(tester);
+
+      debugPrint('[Test 13] Langkah 5: Isi nama dan hasil jadi');
+      final nameField = find.ancestor(
+        of: find.text('Nama bahan olahan'),
+        matching: find.byType(TextFormField),
+      );
+      await tester.enterText(nameField, 'Teh Manis Base');
+
+      final resultField = find.ancestor(
+        of: find.text('Jumlah hasil jadi'),
+        matching: find.byType(TextFormField),
+      );
+      await tester.enterText(resultField, '1000');
+
+      debugPrint('[Test 13] Langkah 6: Tambah komponen Bahan Olahan');
+      final addProcessedBtn = find.widgetWithText(
+        OutlinedButton,
+        'Bahan Olahan',
+      );
+      await tester.ensureVisible(addProcessedBtn);
+      await tester.tap(addProcessedBtn);
+      await tester.pumpAndSettle();
+
+      // Sekarang ada 2 komponen, hapus komponen pertama (Bahan Mentah default)
+      await tester.tap(find.byTooltip('Hapus komponen').first);
+      await tester.pumpAndSettle();
+
+      debugPrint(
+        '[Test 13] Langkah 7: Isi jumlah penggunaan Simple Syrup (100 ml)',
+      );
+      final qtyField = find.ancestor(
+        of: find.text('Jumlah'),
+        matching: find.byType(TextFormField),
+      );
+      await tester.enterText(qtyField, '100');
+      await tester.pump();
+
+      debugPrint(
+        '[Test 13] Langkah 8: Tambah komponen Biaya Lainnya (Kantong Teh)',
+      );
+      final addOtherBtn = find.widgetWithText(OutlinedButton, 'Biaya Lainnya');
+      await tester.ensureVisible(addOtherBtn);
+      await tester.tap(addOtherBtn);
+      await tester.pumpAndSettle();
+
+      final otherCostField = find.ancestor(
+        of: find.text('Nominal Biaya (Rp)'),
+        matching: find.byType(TextFormField),
+      );
+      await tester.ensureVisible(otherCostField);
+      await tester.enterText(otherCostField, '1500');
+
+      final labelField = find.ancestor(
+        of: find.text('Keterangan (Opsional)'),
+        matching: find.byType(TextFormField),
+      );
+      await tester.enterText(labelField, 'Kantong Teh');
+      await tester.pump();
+
+      debugPrint('[Test 13] Langkah 9: Verifikasi live preview modal');
+      // Simple Syrup modal: 8500 / 750 * 100 = 1133.33 + 1500 = 2633.33 (Rp2.633)
+      // Per unit: 2633.33 / 1000 = 2.63 (Rp2,63/ml)
+      expect(find.text('Estimasi Modal Olahan'), findsOneWidget);
+      expect(find.text('Rp2.633'), findsOneWidget);
+      expect(find.text('Rp2,63/ml'), findsOneWidget);
+
+      debugPrint('[Test 13] Langkah 10: Simpan form');
+      await tester.ensureVisible(find.text('Simpan Bahan Olahan'));
+      await tester.tap(find.text('Simpan Bahan Olahan'));
+      await settleAsync(tester);
+      await settleAsync(tester);
+
+      debugPrint(
+        '[Test 13] Langkah 11: Verifikasi card Teh Manis Base di daftar',
+      );
+      expect(find.text('Teh Manis Base'), findsOneWidget);
+      expect(find.text('Hasil: 1.000 ml • 2 komponen'), findsOneWidget);
+      expect(find.text('Rp2.633 (Rp2,63/ml)'), findsOneWidget);
+
+      debugPrint('[Test 13] Langkah 12: Buka detail Teh Manis Base');
+      await tester.tap(find.text('Teh Manis Base'));
+      await settleAsync(tester);
+
+      debugPrint('[Test 13] Langkah 13: Verifikasi isi detail Teh Manis Base');
+      expect(find.text('Hasil Jadi: 1.000 ml'), findsOneWidget);
+      expect(find.text('Ringkasan Modal Olahan'), findsOneWidget);
+      expect(find.text('Total Modal Resep:'), findsOneWidget);
+      expect(find.text('Rp2.633'), findsWidgets);
+      expect(find.text('Modal per Satuan Hasil:'), findsOneWidget);
+      expect(find.text('Rp2,63/ml'), findsWidgets);
+
+      expect(find.text('Komposisi Komponen'), findsOneWidget);
+      expect(find.text('Simple Syrup'), findsOneWidget);
+      expect(find.text('Bahan Olahan • Penggunaan: 100 ml'), findsOneWidget);
+      expect(find.text('Rp1.133'), findsOneWidget);
+      expect(find.text('Biaya Lainnya / Pelengkap'), findsOneWidget);
+      expect(find.text('Rp1.500'), findsOneWidget);
+
+      debugPrint('[Test 13] Langkah 14: Kembali ke daftar');
+      await tester.tap(find.byType(BackButton));
+      await settleAsync(tester);
+
+      debugPrint(
+        '[Test 13] Langkah 15: Validasi circular dependency prevention pada Simple Syrup',
+      );
+      await tester.runAsync(() async {
+        final candidatesForSyrup = await procRepo.getValidChildCandidates(
+          currentProcessedId: syrupId,
+        );
+        final candidateNames = candidatesForSyrup.map((c) => c.name).toList();
+        expect(candidateNames, isNot(contains('Teh Manis Base')));
+        expect(candidateNames, isNot(contains('Simple Syrup')));
+
+        debugPrint(
+          '[Test 13] Langkah 16: Verifikasi delete rejection jika masih digunakan sebagai child',
+        );
+        expect(
+          () => procRepo.delete(syrupId),
+          throwsA(
+            isA<ValidationException>().having(
+              (e) => e.message,
+              'message',
+              contains('masih digunakan oleh bahan olahan lain'),
+            ),
+          ),
+        );
+      });
+
+      debugPrint('[Test 13] SELESAI');
     },
   );
 }

@@ -1,20 +1,22 @@
 /// Model data untuk Komponen Bahan Olahan (`processed_components`).
 class ProcessedComponent {
   static const String typeIngredient = 'ingredient';
+  static const String typeProcessed = 'processed';
   static const String typeOther = 'other';
 
   final int? id;
   final int? processedIngredientId;
-  final String componentType; // 'ingredient' atau 'other'
+  final String componentType; // 'ingredient', 'processed', atau 'other'
   final int? ingredientId;
-  final int? childProcessedId; // NULL pada Tahap 6
+  final int? childProcessedId;
   final double? quantity;
   final String? unit;
   final int? otherCost;
   final String? createdAt;
 
-  // Metadata pembantu untuk tampilan UI dan kalkulasi runtime
+  // Metadata pembantu untuk tampilan UI dan kalkulasi runtime (bukan kolom persistence)
   final String? ingredientName;
+  final String? childProcessedName;
   final String? label; // Keterangan untuk komponen 'other' pada formulir UI
   final double? calculatedCost;
 
@@ -29,11 +31,13 @@ class ProcessedComponent {
     this.otherCost,
     this.createdAt,
     this.ingredientName,
+    this.childProcessedName,
     this.label,
     this.calculatedCost,
   });
 
   bool get isIngredient => componentType == typeIngredient;
+  bool get isProcessed => componentType == typeProcessed;
   bool get isOther => componentType == typeOther;
 
   /// Kuantitas penggunaan yang diformat ramah pengguna
@@ -57,6 +61,7 @@ class ProcessedComponent {
       otherCost: map['other_cost'] as int?,
       createdAt: map['created_at'] as String?,
       ingredientName: map['ingredient_name'] as String?,
+      childProcessedName: map['child_processed_name'] as String?,
     );
   }
 
@@ -86,6 +91,7 @@ class ProcessedComponent {
     int? otherCost,
     String? createdAt,
     String? ingredientName,
+    String? childProcessedName,
     String? label,
     double? calculatedCost,
   }) {
@@ -101,6 +107,7 @@ class ProcessedComponent {
       otherCost: otherCost ?? this.otherCost,
       createdAt: createdAt ?? this.createdAt,
       ingredientName: ingredientName ?? this.ingredientName,
+      childProcessedName: childProcessedName ?? this.childProcessedName,
       label: label ?? this.label,
       calculatedCost: calculatedCost ?? this.calculatedCost,
     );

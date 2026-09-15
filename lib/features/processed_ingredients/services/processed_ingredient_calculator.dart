@@ -139,6 +139,8 @@ class ProcessedIngredientCalculator {
     required ProcessedComponent component,
     List<IngredientPrice>? ingredientPrices,
     String? ingredientName,
+    ProcessedIngredient? childProcessedIngredient,
+    ProcessedIngredientCostResult? childCostResult,
     required String calculationDate,
   }) {
     if (component.componentType == ProcessedComponent.typeOther) {
@@ -225,52 +227,248 @@ class ProcessedIngredientCalculator {
       }
     }
 
+    if (component.componentType == ProcessedComponent.typeProcessed) {
+      final childName =
+          childProcessedIngredient?.name ??
+          component.childProcessedName ??
+          ingredientName ??
+          'Bahan Olahan';
+
+      if (component.childProcessedId == null ||
+          component.quantity == null ||
+          component.quantity! <= 0 ||
+          component.unit == null) {
+        return ComponentCostResult(
+          component: component,
+          calculatedCost: 0.0,
+          isResolvable: false,
+          errorMessage: 'Jumlah atau satuan bahan olahan tidak valid.',
+          ingredientName: childName,
+        );
+      }
+
+      if (childProcessedIngredient == null) {
+        return ComponentCostResult(
+          component: component,
+          calculatedCost: 0.0,
+          isResolvable: false,
+          errorMessage: 'Data bahan olahan anak tidak ditemukan.',
+          ingredientName: childName,
+        );
+      }
+
+      if (childCostResult == null) {
+        return ComponentCostResult(
+          component: component,
+          calculatedCost: 0.0,
+          isResolvable: false,
+          errorMessage: 'Modal bahan olahan "$childName" belum dapat dihitung.',
+          ingredientName: childName,
+        );
+      }
+
+      // Validasi kompatibilitas satuan antara hasil child dan penggunaan parent
+      if (!UnitConverter.isCompatible(
+        childProcessedIngredient.resultUnit,
+        component.unit!,
+      )) {
+        return ComponentCostResult(
+          component: component,
+          calculatedCost: 0.0,
+          isResolvable: false,
+          errorMessage:
+              'Satuan "${component.unit}" tidak cocok dengan satuan hasil bahan olahan ini (${childProcessedIngredient.resultUnit}).',
+          ingredientName: childName,
+        );
+      }
+
+      try {
+        // Konversi kuantitas hasil child ke satuan dasar (misal: 1 liter -> 1000 ml)
+        final childConversion = UnitConverter.convert(
+          purchaseQuantity: childProcessedIngredient.resultQuantity,
+          purchaseUnit: childProcessedIngredient.resultUnit,
+        );
+        final childBaseQty = childConversion.baseQuantity;
+        final childCostPerBaseUnit = childBaseQty > 0
+            ? (childCostResult.totalCost / childBaseQty)
+            : 0.0;
+
+        // Konversi pemakaian komponen ke satuan dasar (misal: 250 ml -> 250 ml)
+        final compConversion = UnitConverter.convert(
+          purchaseQuantity: component.quantity!,
+          purchaseUnit: component.unit!,
+        );
+        final compBaseQty = compConversion.baseQuantity;
+
+        final cost = compBaseQty * childCostPerBaseUnit;
+
+        return ComponentCostResult(
+          component: component,
+          calculatedCost: cost,
+          isResolvable: !childCostResult.hasUnresolvedCost,
+          errorMessage: childCostResult.hasUnresolvedCost
+              ? 'Sebagian biaya bahan olahan "$childName" belum lengkap.'
+              : null,
+          ingredientName: childName,
+        );
+      } on UnitConversionException catch (e) {
+        return ComponentCostResult(
+          component: component,
+          calculatedCost: 0.0,
+          isResolvable: false,
+          errorMessage: e.message,
+          ingredientName: childName,
+        );
+      }
+    }
+
     return ComponentCostResult(
       component: component,
       calculatedCost: 0.0,
       isResolvable: false,
-      errorMessage: 'Tipe komponen tidak didukung pada tahap ini.',
+      errorMessage: 'Tipe komponen tidak didukung.',
       ingredientName: ingredientName,
     );
   }
 
   /// Menghitung total biaya dan biaya per satuan hasil untuk bahan olahan.
+  /// Mendukung perhitungan rekursif bertingkat dengan recursion-path guard.
   static ProcessedIngredientCostResult calculateProcessedIngredientCost({
     required ProcessedIngredient processedIngredient,
     required List<ProcessedComponent> components,
     required Map<int, List<IngredientPrice>> pricesByIngredientId,
     Map<int, String>? ingredientNamesById,
+    Map<int, ProcessedIngredient>? processedIngredientsById,
+    Map<int, List<ProcessedComponent>>? processedComponentsById,
+    Map<int, ProcessedIngredientCostResult>? precalculatedChildCosts,
     required String calculationDate,
+    Set<int>? currentRecursionPath,
   }) {
     final componentResults = <ComponentCostResult>[];
     double totalCost = 0.0;
     bool hasUnresolved = false;
     final warnings = <String>[];
 
-    for (final component in components) {
-      final ingPrices = component.ingredientId != null
-          ? (pricesByIngredientId[component.ingredientId!] ?? [])
-          : null;
-      final ingName =
-          (component.ingredientId != null && ingredientNamesById != null)
-          ? ingredientNamesById[component.ingredientId!]
-          : null;
+    // Inisialisasi set recursion-path untuk mendeteksi siklus pada level kalkulasi
+    final currentPath = currentRecursionPath != null
+        ? Set<int>.from(currentRecursionPath)
+        : <int>{};
 
-      final res = calculateComponentCost(
-        component: component,
-        ingredientPrices: ingPrices,
-        ingredientName: ingName,
-        calculationDate: calculationDate,
-      );
+    if (processedIngredient.id != null) {
+      if (currentPath.contains(processedIngredient.id!)) {
+        // Terdeteksi siklus pada path rekursi saat ini
+        return ProcessedIngredientCostResult(
+          processedIngredient: processedIngredient,
+          componentResults: [],
+          totalCost: 0.0,
+          costPerResultUnit: 0.0,
+          hasUnresolvedCost: true,
+          warnings: [
+            'Terdeteksi siklus ketergantungan pada "${processedIngredient.name}".',
+          ],
+        );
+      }
+      currentPath.add(processedIngredient.id!);
+    }
 
-      componentResults.add(res);
+    try {
+      for (final component in components) {
+        if (component.componentType == ProcessedComponent.typeOther) {
+          final res = calculateComponentCost(
+            component: component,
+            calculationDate: calculationDate,
+          );
+          componentResults.add(res);
+          totalCost += res.calculatedCost;
+        } else if (component.componentType ==
+            ProcessedComponent.typeIngredient) {
+          final ingPrices = component.ingredientId != null
+              ? (pricesByIngredientId[component.ingredientId!] ?? [])
+              : null;
+          final ingName =
+              (component.ingredientId != null && ingredientNamesById != null)
+              ? ingredientNamesById[component.ingredientId!]
+              : null;
 
-      if (res.isResolvable) {
-        totalCost += res.calculatedCost;
-      } else {
-        hasUnresolved = true;
-        final name = res.ingredientName ?? 'Komponen';
-        warnings.add('$name: ${res.errorMessage ?? "Gagal menghitung biaya"}');
+          final res = calculateComponentCost(
+            component: component,
+            ingredientPrices: ingPrices,
+            ingredientName: ingName,
+            calculationDate: calculationDate,
+          );
+          componentResults.add(res);
+
+          if (res.isResolvable) {
+            totalCost += res.calculatedCost;
+          } else {
+            hasUnresolved = true;
+            final name = res.ingredientName ?? 'Komponen';
+            warnings.add(
+              '$name: ${res.errorMessage ?? "Gagal menghitung biaya"}',
+            );
+          }
+        } else if (component.componentType ==
+            ProcessedComponent.typeProcessed) {
+          final childId = component.childProcessedId;
+          ProcessedIngredient? child;
+          if (childId != null && processedIngredientsById != null) {
+            child = processedIngredientsById[childId];
+          }
+
+          ProcessedIngredientCostResult? childCost;
+          if (childId != null && precalculatedChildCosts != null) {
+            childCost = precalculatedChildCosts[childId];
+          }
+
+          // Jika belum ada di precalculated, dan child tersedia, hitung secara rekursif
+          if (childCost == null && child != null) {
+            if (child.id != null && currentPath.contains(child.id!)) {
+              // Terdeteksi siklus ke child!
+              childCost = null;
+            } else {
+              final childComponents =
+                  (child.id != null && processedComponentsById != null)
+                  ? (processedComponentsById[child.id!] ?? [])
+                  : <ProcessedComponent>[];
+
+              childCost = calculateProcessedIngredientCost(
+                processedIngredient: child,
+                components: childComponents,
+                pricesByIngredientId: pricesByIngredientId,
+                ingredientNamesById: ingredientNamesById,
+                processedIngredientsById: processedIngredientsById,
+                processedComponentsById: processedComponentsById,
+                precalculatedChildCosts: precalculatedChildCosts,
+                calculationDate: calculationDate,
+                currentRecursionPath: currentPath,
+              );
+            }
+          }
+
+          final res = calculateComponentCost(
+            component: component,
+            childProcessedIngredient: child,
+            childCostResult: childCost,
+            calculationDate: calculationDate,
+          );
+          componentResults.add(res);
+
+          if (res.isResolvable) {
+            totalCost += res.calculatedCost;
+          } else {
+            hasUnresolved = true;
+            final name = res.ingredientName ?? 'Bahan Olahan';
+            warnings.add(
+              '$name: ${res.errorMessage ?? "Gagal menghitung modal"}',
+            );
+          }
+        }
+      }
+    } finally {
+      // Backtracking: Keluarkan node ini dari recursion path saat selesai
+      // agar tidak menghalangi branch valid lain yang menggunakan child yang sama
+      if (processedIngredient.id != null) {
+        currentPath.remove(processedIngredient.id!);
       }
     }
 

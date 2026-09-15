@@ -340,5 +340,164 @@ void main() {
         expect((await processedRepo.getComponents(created.id!)).length, 0);
       },
     );
+
+    test(
+      'Tahap 7: Create dan get bahan olahan dengan nested component',
+      () async {
+        final gula = await ingredientRepo.create('Gula');
+
+        // 1. Buat child: Simple Syrup
+        final child = await processedRepo.create(
+          name: 'Simple Syrup',
+          resultQuantity: 1000,
+          resultUnit: 'ml',
+          components: [
+            ProcessedComponent(
+              componentType: ProcessedComponent.typeIngredient,
+              ingredientId: gula.id,
+              quantity: 500,
+              unit: 'g',
+            ),
+          ],
+        );
+
+        // 2. Buat parent: Sweet Tea Base menggunakan Simple Syrup sebagai nested component
+        final parent = await processedRepo.create(
+          name: 'Sweet Tea Base',
+          resultQuantity: 2000,
+          resultUnit: 'ml',
+          components: [
+            ProcessedComponent(
+              componentType: ProcessedComponent.typeProcessed,
+              childProcessedId: child.id,
+              quantity: 200,
+              unit: 'ml',
+            ),
+            const ProcessedComponent(
+              componentType: ProcessedComponent.typeOther,
+              otherCost: 2000,
+            ),
+          ],
+        );
+
+        expect(parent.id, isNotNull);
+        final components = await processedRepo.getComponents(parent.id!);
+        expect(components.length, 2);
+
+        final processedComp = components.firstWhere((c) => c.isProcessed);
+        expect(processedComp.childProcessedId, child.id);
+        expect(processedComp.childProcessedName, 'Simple Syrup');
+        expect(processedComp.quantity, 200);
+        expect(processedComp.unit, 'ml');
+      },
+    );
+
+    test(
+      'Tahap 7: Mencegah circular dependency pada repository (create dan update)',
+      () async {
+        final gula = await ingredientRepo.create('Gula');
+
+        // A -> B
+        final itemA = await processedRepo.create(
+          name: 'Olahan A',
+          resultQuantity: 500,
+          resultUnit: 'ml',
+          components: [
+            ProcessedComponent(
+              componentType: ProcessedComponent.typeIngredient,
+              ingredientId: gula.id,
+              quantity: 100,
+              unit: 'g',
+            ),
+          ],
+        );
+
+        final itemB = await processedRepo.create(
+          name: 'Olahan B',
+          resultQuantity: 500,
+          resultUnit: 'ml',
+          components: [
+            ProcessedComponent(
+              componentType: ProcessedComponent.typeProcessed,
+              childProcessedId: itemA.id,
+              quantity: 100,
+              unit: 'ml',
+            ),
+          ],
+        );
+
+        // Coba update A agar menggunakan B -> Harus ditolak (A -> B -> A cycle)
+        expect(
+          () => processedRepo.update(
+            itemA.id!,
+            name: itemA.name,
+            resultQuantity: itemA.resultQuantity,
+            resultUnit: itemA.resultUnit,
+            components: [
+              ProcessedComponent(
+                componentType: ProcessedComponent.typeProcessed,
+                childProcessedId: itemB.id,
+                quantity: 50,
+                unit: 'ml',
+              ),
+            ],
+          ),
+          throwsA(
+            isA<ValidationException>().having(
+              (e) => e.message,
+              'message',
+              contains('siklus ketergantungan'),
+            ),
+          ),
+        );
+      },
+    );
+
+    test(
+      'Tahap 7: Mencegah penghapusan bahan olahan jika masih dirujuk sebagai child',
+      () async {
+        final gula = await ingredientRepo.create('Gula');
+
+        final child = await processedRepo.create(
+          name: 'Sirup Utama',
+          resultQuantity: 500,
+          resultUnit: 'ml',
+          components: [
+            ProcessedComponent(
+              componentType: ProcessedComponent.typeIngredient,
+              ingredientId: gula.id,
+              quantity: 100,
+              unit: 'g',
+            ),
+          ],
+        );
+
+        await processedRepo.create(
+          name: 'Minuman Jadi',
+          resultQuantity: 1000,
+          resultUnit: 'ml',
+          components: [
+            ProcessedComponent(
+              componentType: ProcessedComponent.typeProcessed,
+              childProcessedId: child.id,
+              quantity: 100,
+              unit: 'ml',
+            ),
+          ],
+        );
+
+        // Coba hapus child -> Harus ditolak
+        expect(
+          () => processedRepo.delete(child.id!),
+          throwsA(
+            isA<ValidationException>().having(
+              (e) => e.message,
+              'message',
+              contains('masih digunakan oleh bahan olahan lain'),
+            ),
+          ),
+        );
+      },
+    );
   });
 }

@@ -66,9 +66,11 @@ class _ProcessedIngredientDetailScreenState
         widget.processedIngredientId,
       );
 
-      // Load harga bahan mentah terkait untuk kalkulasi
+      // Load harga bahan mentah dan data bahan olahan terkait untuk kalkulasi rekursif
       final pricesMap = <int, List<IngredientPrice>>{};
       final namesMap = <int, String>{};
+      final procMap = <int, ProcessedIngredient>{};
+      final procCompMap = <int, List<ProcessedComponent>>{};
 
       for (final comp in components) {
         if (comp.ingredientId != null &&
@@ -82,6 +84,38 @@ class _ProcessedIngredientDetailScreenState
         }
       }
 
+      if (item.id != null) {
+        procMap[item.id!] = item;
+        procCompMap[item.id!] = components;
+      }
+
+      // Muat data bahan olahan aktif hanya jika terdapat komponen turunan
+      if (components.any((c) => c.isProcessed)) {
+        final allProcessed = await _processedRepo.getAll(status: 'active');
+        for (final p in allProcessed) {
+          if (p.id != null && p.id != item.id) {
+            procMap[p.id!] = p;
+            final c = await _processedRepo.getComponents(p.id!);
+            procCompMap[p.id!] = c;
+            for (final childComp in c) {
+              if (childComp.ingredientId != null &&
+                  !pricesMap.containsKey(childComp.ingredientId!)) {
+                final pPrices = await _priceRepo.getPrices(
+                  childComp.ingredientId!,
+                );
+                pricesMap[childComp.ingredientId!] = pPrices;
+                final pIng = await _ingredientRepo.getById(
+                  childComp.ingredientId!,
+                );
+                if (pIng != null) {
+                  namesMap[childComp.ingredientId!] = pIng.name;
+                }
+              }
+            }
+          }
+        }
+      }
+
       final nowStr = DateTime.now().toIso8601String().substring(0, 10);
       final calcResult =
           ProcessedIngredientCalculator.calculateProcessedIngredientCost(
@@ -89,6 +123,8 @@ class _ProcessedIngredientDetailScreenState
             components: components,
             pricesByIngredientId: pricesMap,
             ingredientNamesById: namesMap,
+            processedIngredientsById: procMap,
+            processedComponentsById: procCompMap,
             calculationDate: nowStr,
           );
 
@@ -128,6 +164,7 @@ class _ProcessedIngredientDetailScreenState
       context,
       initialProcessedIngredient: _item,
       initialComponents: _components,
+      processedRepository: _processedRepo,
       ingredientRepository: _ingredientRepo,
       priceRepository: _priceRepo,
       onSave:
@@ -525,18 +562,40 @@ class _ProcessedIngredientDetailScreenState
     final colorScheme = theme.colorScheme;
     final isIngredient =
         comp.componentType == ProcessedComponent.typeIngredient;
+    final isProcessed = comp.componentType == ProcessedComponent.typeProcessed;
 
-    final title = isIngredient
-        ? (comp.ingredientName ?? 'Bahan Mentah')
-        : 'Biaya Lainnya / Pelengkap';
+    final String title;
+    final String subtext;
+    final IconData iconData;
+    final Color iconBgColor;
+    final Color iconColor;
 
-    final subtext = isIngredient
-        ? 'Penggunaan: ${comp.formattedQuantity} ${comp.unit}'
-        : 'Biaya utilitas / operasional olahan';
+    if (isIngredient) {
+      title = comp.ingredientName ?? 'Bahan Mentah';
+      subtext = 'Penggunaan: ${comp.formattedQuantity} ${comp.unit}';
+      iconData = Icons.inventory_2_outlined;
+      iconBgColor = colorScheme.primary.withAlpha(20);
+      iconColor = colorScheme.primary;
+    } else if (isProcessed) {
+      title = comp.childProcessedName ?? 'Bahan Olahan';
+      subtext =
+          'Bahan Olahan • Penggunaan: ${comp.formattedQuantity} ${comp.unit}';
+      iconData = Icons.blender_outlined;
+      iconBgColor = colorScheme.tertiary.withAlpha(25);
+      iconColor = colorScheme.tertiary;
+    } else {
+      title = comp.label != null && comp.label!.isNotEmpty
+          ? comp.label!
+          : 'Biaya Lainnya / Pelengkap';
+      subtext = 'Biaya utilitas / operasional olahan';
+      iconData = Icons.attach_money_rounded;
+      iconBgColor = colorScheme.secondary.withAlpha(20);
+      iconColor = colorScheme.secondary;
+    }
 
     final costText = result != null && result.isResolvable
         ? CurrencyFormatter.formatRupiah(result.calculatedCost.round())
-        : (isIngredient ? 'Belum ada harga' : 'Rp0');
+        : (isIngredient || isProcessed ? 'Belum ada harga' : 'Rp0');
 
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
@@ -554,20 +613,10 @@ class _ProcessedIngredientDetailScreenState
               width: 38,
               height: 38,
               decoration: BoxDecoration(
-                color: isIngredient
-                    ? colorScheme.primary.withAlpha(20)
-                    : colorScheme.secondary.withAlpha(20),
+                color: iconBgColor,
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(
-                isIngredient
-                    ? Icons.inventory_2_outlined
-                    : Icons.attach_money_rounded,
-                size: 20,
-                color: isIngredient
-                    ? colorScheme.primary
-                    : colorScheme.secondary,
-              ),
+              child: Icon(iconData, size: 20, color: iconColor),
             ),
             const SizedBox(width: 12),
             Expanded(

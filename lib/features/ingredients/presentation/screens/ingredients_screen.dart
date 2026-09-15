@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/widgets/app_empty_state.dart';
 import '../../../processed_ingredients/data/processed_ingredient_repository.dart';
+import '../../../processed_ingredients/models/processed_component.dart';
 import '../../../processed_ingredients/models/processed_ingredient.dart';
 import '../../../processed_ingredients/presentation/screens/processed_ingredient_detail_screen.dart';
 import '../../../processed_ingredients/presentation/widgets/processed_ingredient_card.dart';
@@ -111,9 +112,23 @@ class _IngredientsScreenState extends State<IngredientsScreen> {
 
         final nowStr = DateTime.now().toIso8601String().substring(0, 10);
 
+        // Muat seluruh bahan olahan aktif & komponennya untuk resolusi turunan nested
+        final allProcessed = await _processedRepo.getAll(status: 'active');
+        final procMap = <int, ProcessedIngredient>{};
+        final procCompMap = <int, List<ProcessedComponent>>{};
+        for (final p in allProcessed) {
+          if (p.id != null) {
+            procMap[p.id!] = p;
+            final c = await _processedRepo.getComponents(p.id!);
+            procCompMap[p.id!] = c;
+          }
+        }
+
         for (final item in items) {
           if (item.id != null) {
-            final comps = await _processedRepo.getComponents(item.id!);
+            final comps =
+                procCompMap[item.id!] ??
+                await _processedRepo.getComponents(item.id!);
             countsMap[item.id!] = comps.length;
             final costRes =
                 ProcessedIngredientCalculator.calculateProcessedIngredientCost(
@@ -121,6 +136,8 @@ class _IngredientsScreenState extends State<IngredientsScreen> {
                   components: comps,
                   pricesByIngredientId: rawPrices,
                   ingredientNamesById: rawNames,
+                  processedIngredientsById: procMap,
+                  processedComponentsById: procCompMap,
                   calculationDate: nowStr,
                 );
             costResultsMap[item.id!] = costRes;
@@ -253,6 +270,7 @@ class _IngredientsScreenState extends State<IngredientsScreen> {
   Future<void> _showAddProcessedForm() async {
     final result = await ProcessedIngredientFormSheet.show(
       context,
+      processedRepository: _processedRepo,
       ingredientRepository: _repository,
       priceRepository: _priceRepo,
       onSave:
@@ -285,6 +303,7 @@ class _IngredientsScreenState extends State<IngredientsScreen> {
       context,
       initialProcessedIngredient: item,
       initialComponents: components,
+      processedRepository: _processedRepo,
       ingredientRepository: _repository,
       priceRepository: _priceRepo,
       onSave:

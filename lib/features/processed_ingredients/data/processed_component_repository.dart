@@ -33,9 +33,11 @@ class ProcessedComponentRepository {
         pc.unit,
         pc.other_cost,
         pc.created_at,
-        i.name AS ingredient_name
+        i.name AS ingredient_name,
+        child.name AS child_processed_name
       FROM ${TableNames.processedComponents} pc
       LEFT JOIN ${TableNames.ingredients} i ON pc.ingredient_id = i.id
+      LEFT JOIN ${TableNames.processedIngredients} child ON pc.child_processed_id = child.id
       WHERE pc.processed_ingredient_id = ?
       ORDER BY pc.id ASC
       ''',
@@ -47,16 +49,15 @@ class ProcessedComponentRepository {
 
   /// Memvalidasi integritas satu komponen sebelum disimpan.
   static void validateComponent(ProcessedComponent component) {
-    if (component.childProcessedId != null) {
-      throw const ValidationException(
-        'Bahan olahan bersarang belum didukung pada tahap ini.',
-      );
-    }
-
     if (component.componentType == ProcessedComponent.typeIngredient) {
       if (component.ingredientId == null) {
         throw const ValidationException(
           'Bahan mentah harus dipilih untuk komponen bertipe bahan mentah.',
+        );
+      }
+      if (component.childProcessedId != null) {
+        throw const ValidationException(
+          'Bahan olahan anak tidak boleh diisi pada komponen bahan mentah.',
         );
       }
       if (component.quantity == null || component.quantity! <= 0) {
@@ -74,6 +75,32 @@ class ProcessedComponentRepository {
           'Biaya lainnya tidak boleh diisi pada komponen bahan mentah.',
         );
       }
+    } else if (component.componentType == ProcessedComponent.typeProcessed) {
+      if (component.childProcessedId == null) {
+        throw const ValidationException(
+          'Bahan olahan anak harus dipilih untuk komponen bertipe bahan olahan.',
+        );
+      }
+      if (component.ingredientId != null) {
+        throw const ValidationException(
+          'Bahan mentah tidak boleh diisi pada komponen bahan olahan.',
+        );
+      }
+      if (component.quantity == null || component.quantity! <= 0) {
+        throw const ValidationException(
+          'Jumlah penggunaan bahan olahan harus lebih besar dari 0.',
+        );
+      }
+      if (component.unit == null || component.unit!.trim().isEmpty) {
+        throw const ValidationException(
+          'Satuan penggunaan bahan olahan wajib diisi.',
+        );
+      }
+      if (component.otherCost != null) {
+        throw const ValidationException(
+          'Biaya lainnya tidak boleh diisi pada komponen bahan olahan.',
+        );
+      }
     } else if (component.componentType == ProcessedComponent.typeOther) {
       if (component.otherCost == null || component.otherCost! < 0) {
         throw const ValidationException(
@@ -83,6 +110,11 @@ class ProcessedComponentRepository {
       if (component.ingredientId != null) {
         throw const ValidationException(
           'Bahan mentah tidak boleh diisi pada komponen biaya lainnya.',
+        );
+      }
+      if (component.childProcessedId != null) {
+        throw const ValidationException(
+          'Bahan olahan anak tidak boleh diisi pada komponen biaya lainnya.',
         );
       }
       if (component.quantity != null || component.unit != null) {
@@ -110,7 +142,7 @@ class ProcessedComponentRepository {
         'processed_ingredient_id': processedIngredientId,
         'component_type': comp.componentType,
         'ingredient_id': comp.ingredientId,
-        'child_processed_id': null,
+        'child_processed_id': comp.childProcessedId,
         'quantity': comp.quantity,
         'unit': comp.unit,
         'other_cost': comp.otherCost,
