@@ -47,4 +47,3 @@ class MissingIngredientPriceException implements Exception {
   @override
   String toString() => message;
 }
-

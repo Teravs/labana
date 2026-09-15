@@ -99,7 +99,7 @@ class HomeScreen extends StatelessWidget {
                 runSpacing: 10,
                 children: [
                   FilledButton.icon(
-                    onPressed: () => AppFeedback.showFeatureNotice(context),
+                    onPressed: () => context.push(AppRoutes.saleNew),
                     icon: const Icon(Icons.add_shopping_cart_rounded, size: 18),
                     label: const Text('+ Penjualan'),
                   ),

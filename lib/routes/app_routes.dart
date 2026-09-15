@@ -8,6 +8,8 @@ import '../features/processed_ingredients/presentation/screens/processed_ingredi
 import '../features/products/presentation/screens/product_detail_screen.dart';
 import '../features/products/presentation/screens/products_screen.dart';
 import '../features/reports/presentation/screens/reports_screen.dart';
+import '../features/sales/presentation/screens/sale_detail_screen.dart';
+import '../features/sales/presentation/screens/sale_form_screen.dart';
 import '../features/sales/presentation/screens/sales_screen.dart';
 import '../features/settings/presentation/screens/settings_screen.dart';
 import '../features/shell/presentation/screens/app_shell.dart';
@@ -23,6 +25,9 @@ class AppRoutes {
   static const String ingredients = '/ingredients';
   static const String ingredientDetail = '/ingredients/:id';
   static const String sales = '/sales';
+  static const String saleNew = '/sales/new';
+  static const String saleDetail = '/sales/:id';
+  static const String saleEdit = '/sales/:id/edit';
   static const String reports = '/reports';
   static const String settings = '/settings';
 
@@ -117,6 +122,39 @@ class AppRouter {
                 builder: (BuildContext context, GoRouterState state) {
                   return const SalesScreen();
                 },
+                routes: [
+                  GoRoute(
+                    path: 'new',
+                    name: 'sale-new',
+                    parentNavigatorKey: _rootNavigatorKey,
+                    builder: (BuildContext context, GoRouterState state) {
+                      return const SaleFormScreen();
+                    },
+                  ),
+                  GoRoute(
+                    path: ':id',
+                    name: 'sale-detail',
+                    parentNavigatorKey: _rootNavigatorKey,
+                    builder: (BuildContext context, GoRouterState state) {
+                      final id =
+                          int.tryParse(state.pathParameters['id'] ?? '') ?? 0;
+                      return SaleDetailScreen(saleId: id);
+                    },
+                    routes: [
+                      GoRoute(
+                        path: 'edit',
+                        name: 'sale-edit',
+                        parentNavigatorKey: _rootNavigatorKey,
+                        builder: (BuildContext context, GoRouterState state) {
+                          final id =
+                              int.tryParse(state.pathParameters['id'] ?? '') ??
+                              0;
+                          return SaleFormScreen(saleId: id);
+                        },
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ],
           ),

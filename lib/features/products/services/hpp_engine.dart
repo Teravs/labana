@@ -329,10 +329,9 @@ class HppEngine {
           final hasAnyEffective = prices.any(
             (p) => p.effectiveFrom.compareTo(calculationDate) <= 0,
           );
-          final errorMsg =
-              hasAnyEffective
-                  ? 'Satuan "${item.unit}" tidak cocok dengan format harga "$name".'
-                  : 'Belum ada harga aktif untuk "$name" per tanggal $calculationDate.';
+          final errorMsg = hasAnyEffective
+              ? 'Satuan "${item.unit}" tidak cocok dengan format harga "$name".'
+              : 'Belum ada harga aktif untuk "$name" per tanggal $calculationDate.';
           warnings.add(errorMsg);
           if (strict) {
             throw MissingIngredientPriceException(
@@ -532,10 +531,9 @@ class HppEngine {
             purchaseUnit: child.resultUnit,
           );
           final childBaseQty = childConversion.baseQuantity;
-          final childCostPerBaseUnit =
-              childBaseQty > 0
-                  ? (childCostResult.totalCost / childBaseQty)
-                  : 0.0;
+          final childCostPerBaseUnit = childBaseQty > 0
+              ? (childCostResult.totalCost / childBaseQty)
+              : 0.0;
 
           final compConversion = UnitConverter.convert(
             purchaseQuantity: item.quantity!,
@@ -573,10 +571,9 @@ class HppEngine {
               totalCost: cost,
               roundedCost: cost.round(),
               isResolvable: !childCostResult.hasUnresolvedCost,
-              errorMessage:
-                  childCostResult.hasUnresolvedCost
-                      ? 'Sebagian biaya olahan belum lengkap.'
-                      : null,
+              errorMessage: childCostResult.hasUnresolvedCost
+                  ? 'Sebagian biaya olahan belum lengkap.'
+                  : null,
             ),
           );
         } on UnitConversionException catch (e) {
@@ -621,8 +618,9 @@ class HppEngine {
 
     if (sellingPrice != null) {
       profit = sellingPrice - hppTotal;
-      marginPercentage =
-          sellingPrice > 0 ? ((profit / sellingPrice) * 100) : 0.0;
+      marginPercentage = sellingPrice > 0
+          ? ((profit / sellingPrice) * 100)
+          : 0.0;
       isBelowHpp = sellingPrice < hppTotal;
     }
 

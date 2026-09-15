@@ -7,6 +7,13 @@ import 'package:labana/features/ingredients/data/ingredient_price_repository.dar
 import 'package:labana/features/ingredients/data/ingredient_repository.dart';
 import 'package:labana/features/processed_ingredients/data/processed_ingredient_repository.dart';
 import 'package:labana/features/processed_ingredients/models/processed_component.dart';
+import 'package:labana/features/products/data/product_price_repository.dart';
+import 'package:labana/features/products/data/product_repository.dart';
+import 'package:labana/features/products/data/recipe_item_repository.dart';
+import 'package:labana/features/products/data/recipe_version_repository.dart';
+import 'package:labana/features/products/models/product_price.dart';
+import 'package:labana/features/products/models/recipe_item.dart';
+import 'package:labana/features/products/models/recipe_version.dart';
 import 'package:labana/main.dart';
 import 'package:labana/routes/app_routes.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -1044,6 +1051,243 @@ void main() {
 
       expect(find.text('Es Teh Manis'), findsOneWidget);
       debugPrint('[Test 14] SELESAI');
+    },
+  );
+
+  // ---------------------------------------------------------------------------
+  // Test 15: End-to-End Sales Flow (Create, Multi-Product, Historical Snapshot, Edit, Delete)
+  // ---------------------------------------------------------------------------
+  testWidgets(
+    'Test 15: End-to-End Sales Flow (Create, Multi-Product, Historical Snapshot, Edit, Delete)',
+    (WidgetTester tester) async {
+      debugPrint('[Test 15] Langkah 1: Setup master data produk & resep');
+      final ingRepo = IngredientRepository();
+      final priceRepo = IngredientPriceRepository();
+      final prodRepo = ProductRepository();
+      final recipeVersionRepo = RecipeVersionRepository();
+      final recipeItemRepo = RecipeItemRepository();
+      final prodPriceRepo = ProductPriceRepository();
+
+      await tester.runAsync(() async {
+        // Teh Melati
+        final teh = await ingRepo.create('Teh Melati');
+        await priceRepo.createPrice(
+          ingredientId: teh.id!,
+          purchaseQuantity: 100,
+          purchaseUnit: 'g',
+          price: 10000,
+          effectiveFrom: '2026-09-01',
+          isDefault: true,
+        );
+
+        // Produk 1: Es Teh Manis (HPP 1000, Harga Jual 5000)
+        final tehManis = await prodRepo.create('Es Teh Manis');
+        final v1 = await recipeVersionRepo.create(
+          RecipeVersion(
+            productId: tehManis.id!,
+            versionNumber: 1,
+            effectiveFrom: '2026-09-01',
+            hppTotal: 1000,
+            status: 'active',
+            createdAt: '2026-09-01T00:00:00Z',
+          ),
+        );
+        await recipeItemRepo.createMany([
+          RecipeItem(
+            recipeVersionId: v1.id!,
+            componentType: RecipeItem.typeIngredient,
+            ingredientId: teh.id!,
+            quantity: 5,
+            unit: 'g',
+            createdAt: '2026-09-01T00:00:00Z',
+          ),
+          RecipeItem(
+            recipeVersionId: v1.id!,
+            componentType: RecipeItem.typeOther,
+            otherCost: 500,
+            label: 'Cup',
+            createdAt: '2026-09-01T00:00:00Z',
+          ),
+        ]);
+        await prodPriceRepo.create(
+          ProductPrice(
+            productId: tehManis.id!,
+            sellingPrice: 5000,
+            effectiveFrom: '2026-09-01',
+            createdAt: '2026-09-01T00:00:00Z',
+          ),
+        );
+
+        // Produk 2: Es Jeruk (HPP 1500, Harga Jual 6000)
+        final jeruk = await prodRepo.create('Es Jeruk Segar');
+        final v2 = await recipeVersionRepo.create(
+          RecipeVersion(
+            productId: jeruk.id!,
+            versionNumber: 1,
+            effectiveFrom: '2026-09-01',
+            hppTotal: 1500,
+            status: 'active',
+            createdAt: '2026-09-01T00:00:00Z',
+          ),
+        );
+        await recipeItemRepo.create(
+          RecipeItem(
+            recipeVersionId: v2.id!,
+            componentType: RecipeItem.typeOther,
+            otherCost: 1500,
+            label: 'Jeruk & Cup',
+            createdAt: '2026-09-01T00:00:00Z',
+          ),
+        );
+        await prodPriceRepo.create(
+          ProductPrice(
+            productId: jeruk.id!,
+            sellingPrice: 6000,
+            effectiveFrom: '2026-09-01',
+            createdAt: '2026-09-01T00:00:00Z',
+          ),
+        );
+      });
+
+      debugPrint(
+        '[Test 15] Langkah 2: Buka aplikasi & navigasi ke tab Penjualan',
+      );
+      await tester.pumpWidget(const LabanaApp());
+      await settleAsync(tester);
+
+      await tester.tap(
+        find.descendant(
+          of: find.byType(NavigationBar),
+          matching: find.text('Penjualan'),
+        ),
+      );
+      await settleAsync(tester);
+
+      debugPrint('[Test 15] Langkah 3: Verifikasi empty state awal');
+      expect(find.text('Belum ada transaksi.'), findsOneWidget);
+
+      debugPrint('[Test 15] Langkah 4: Buka form Tambah Penjualan');
+      await tester.tap(find.text('+ Tambah Penjualan'));
+      await settleAsync(tester);
+
+      expect(find.text('Tambah Penjualan'), findsOneWidget);
+
+      debugPrint(
+        '[Test 15] Langkah 5: Buka ProductPickerSheet & pilih Es Teh Manis',
+      );
+      await tester.ensureVisible(find.text('Tambah Produk'));
+      await tester.tap(find.text('Tambah Produk'));
+      await settleAsync(tester);
+
+      expect(find.text('Pilih Produk'), findsOneWidget);
+      for (int i = 0; i < 30; i++) {
+        if (find.text('Es Teh Manis').evaluate().isNotEmpty) break;
+        await tester.pump(const Duration(milliseconds: 100));
+        await tester.runAsync(
+          () => Future.delayed(const Duration(milliseconds: 100)),
+        );
+      }
+      expect(find.text('Es Teh Manis'), findsWidgets);
+      await tester.tap(find.text('Es Teh Manis').first);
+      await settleAsync(tester);
+
+      expect(find.text('Es Teh Manis'), findsOneWidget);
+
+      debugPrint(
+        '[Test 15] Langkah 6: Tambah kuantitas Es Teh Manis menjadi 2',
+      );
+      await tester.tap(find.byIcon(Icons.add_rounded).last);
+      await settleAsync(tester);
+
+      debugPrint('[Test 15] Langkah 7: Tambah produk kedua (Es Jeruk Segar)');
+      await tester.ensureVisible(find.text('Tambah Produk'));
+      await tester.tap(find.text('Tambah Produk'));
+      await settleAsync(tester);
+
+      expect(find.text('Pilih Produk'), findsOneWidget);
+      for (int i = 0; i < 30; i++) {
+        if (find.text('Es Jeruk Segar').evaluate().isNotEmpty) break;
+        await tester.pump(const Duration(milliseconds: 100));
+        await tester.runAsync(
+          () => Future.delayed(const Duration(milliseconds: 100)),
+        );
+      }
+      expect(find.text('Es Jeruk Segar'), findsWidgets);
+      await tester.tap(find.text('Es Jeruk Segar').first);
+      await settleAsync(tester);
+
+      debugPrint(
+        '[Test 15] Langkah 8: Verifikasi Live Summary (Omzet 16.000, HPP 3.500, Laba 12.500)',
+      );
+      expect(find.text('Rp16.000'), findsWidgets);
+      expect(find.text('Rp3.500'), findsWidgets);
+      expect(find.text('Rp12.500'), findsWidgets);
+
+      debugPrint('[Test 15] Langkah 9: Simpan transaksi penjualan');
+      await tester.ensureVisible(find.text('Simpan Penjualan'));
+      await tester.tap(find.text('Simpan Penjualan'));
+      await settleAsync(tester);
+
+      debugPrint(
+        '[Test 15] Langkah 10: Verifikasi kartu transaksi muncul di daftar',
+      );
+      expect(find.text('Penjualan'), findsWidgets);
+      expect(find.text('Rp16.000'), findsOneWidget);
+      expect(find.text('Laba Rp12.500'), findsOneWidget);
+      expect(find.text('2 produk'), findsOneWidget);
+
+      debugPrint('[Test 15] Langkah 11: Buka Detail Transaksi');
+      await tester.tap(find.text('Rp16.000'));
+      await settleAsync(tester);
+
+      expect(find.text('Detail Penjualan'), findsOneWidget);
+      expect(find.text('Rincian Produk (2)'), findsOneWidget);
+
+      debugPrint('[Test 15] Langkah 12: Buka Edit Transaksi');
+      await tester.tap(find.byTooltip('Edit Transaksi'));
+      await settleAsync(tester);
+
+      expect(find.text('Edit Penjualan'), findsOneWidget);
+
+      debugPrint('[Test 15] Langkah 13: Simpan perubahan');
+      ScaffoldMessenger.of(
+        tester.element(find.byType(Scaffold).first),
+      ).clearSnackBars();
+      await tester.pumpAndSettle();
+      for (int i = 0; i < 30; i++) {
+        if (find.text('Simpan Perubahan').evaluate().isNotEmpty) break;
+        await tester.pump(const Duration(milliseconds: 100));
+        await tester.runAsync(
+          () => Future.delayed(const Duration(milliseconds: 100)),
+        );
+      }
+      final simpanBtn = find.widgetWithText(FilledButton, 'Simpan Perubahan');
+      await tester.ensureVisible(simpanBtn);
+      await tester.tap(simpanBtn);
+      await settleAsync(tester);
+
+      expect(find.text('Detail Penjualan'), findsOneWidget);
+
+      debugPrint(
+        '[Test 15] Langkah 14: Hapus Transaksi dengan konfirmasi dialog',
+      );
+      await tester.tap(find.byTooltip('Hapus Transaksi'));
+      await settleAsync(tester);
+
+      expect(find.text('Hapus Penjualan?'), findsOneWidget);
+      await tester.tap(
+        find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.widgetWithText(FilledButton, 'Hapus'),
+        ),
+      );
+      await settleAsync(tester);
+
+      debugPrint(
+        '[Test 15] Langkah 15: Verifikasi transaksi terhapus dan kembali ke empty state',
+      );
+      expect(find.text('Belum ada transaksi.'), findsOneWidget);
+      debugPrint('[Test 15] SELESAI');
     },
   );
 }

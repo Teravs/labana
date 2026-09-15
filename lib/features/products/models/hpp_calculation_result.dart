@@ -42,10 +42,9 @@ class HppCalculationItem {
   /// Format kuantitas pemakaian ramah pengguna (misal "5 g", "30 ml").
   String get formattedQuantity {
     if (quantity == null || unit == null) return '-';
-    final qtyStr =
-        quantity! % 1 == 0
-            ? quantity!.toInt().toString()
-            : quantity!.toString();
+    final qtyStr = quantity! % 1 == 0
+        ? quantity!.toInt().toString()
+        : quantity!.toString();
     return '$qtyStr $unit';
   }
 
@@ -119,20 +118,19 @@ class HppCalculationResult {
   String get formattedHppTotal => CurrencyFormatter.formatRupiah(hppTotal);
 
   /// Format harga jual ke standar Rupiah, atau '-' jika belum ditentukan.
-  String get formattedSellingPrice =>
-      sellingPrice != null ? CurrencyFormatter.formatRupiah(sellingPrice!) : '-';
+  String get formattedSellingPrice => sellingPrice != null
+      ? CurrencyFormatter.formatRupiah(sellingPrice!)
+      : '-';
 
   /// Format estimasi laba ke standar Rupiah, atau '-' jika harga jual belum ditentukan.
   String get formattedProfit =>
       profit != null ? CurrencyFormatter.formatRupiah(profit!) : '-';
 
   /// Format persentase margin laba (misal "73.2%"), atau '-' jika harga jual belum ditentukan.
-  String get formattedMargin =>
-      marginPercentage != null
-          ? '${marginPercentage!.toStringAsFixed(1)}%'
-          : '-';
+  String get formattedMargin => marginPercentage != null
+      ? '${marginPercentage!.toStringAsFixed(1)}%'
+      : '-';
 
   /// Label versi resep (misal "Resep v1").
   String get recipeVersionLabel => 'Resep v$recipeVersionNumber';
 }
-
