@@ -125,9 +125,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         final pricesMap = <int, List<IngredientPrice>>{};
         for (final item in activeItems) {
           if (item.isIngredient && item.ingredientId != null) {
-            pricesMap[item.ingredientId!] = await _ingredientPriceRepo.getPrices(
-              item.ingredientId!,
-            );
+            pricesMap[item.ingredientId!] = await _ingredientPriceRepo
+                .getPrices(item.ingredientId!);
           }
         }
 
@@ -187,22 +186,23 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       ingredientRepository: _ingredientRepo,
       priceRepository: _ingredientPriceRepo,
       processedRepository: _processedRepo,
-      onSave: ({
-        required String name,
-        required List<RecipeItem> recipeItems,
-        required int sellingPrice,
-        required String effectiveDate,
-        required int hppTotal,
-      }) async {
-        await _productRepo.updateProductWithRecipeAndPrice(
-          productId: _product!.id!,
-          name: name,
-          recipeItems: recipeItems,
-          sellingPrice: sellingPrice,
-          effectiveDate: effectiveDate,
-          hppTotal: hppTotal,
-        );
-      },
+      onSave:
+          ({
+            required String name,
+            required List<RecipeItem> recipeItems,
+            required int sellingPrice,
+            required String effectiveDate,
+            required int hppTotal,
+          }) async {
+            await _productRepo.updateProductWithRecipeAndPrice(
+              productId: _product!.id!,
+              name: name,
+              recipeItems: recipeItems,
+              sellingPrice: sellingPrice,
+              effectiveDate: effectiveDate,
+              hppTotal: hppTotal,
+            );
+          },
     );
 
     if (updated == true) {
@@ -227,26 +227,25 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   Future<void> _confirmDeactivate() async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: const Text('Nonaktifkan Produk?'),
-            content: Text(
-              'Produk "${_product?.name}" tidak akan muncul dalam daftar menu aktif, namun resep dan riwayat penjualannya tetap aman tersimpan.',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(false),
-                child: const Text('Batal'),
-              ),
-              FilledButton(
-                style: FilledButton.styleFrom(
-                  backgroundColor: Theme.of(ctx).colorScheme.error,
-                ),
-                onPressed: () => Navigator.of(ctx).pop(true),
-                child: const Text('Nonaktifkan'),
-              ),
-            ],
+      builder: (ctx) => AlertDialog(
+        title: const Text('Nonaktifkan Produk?'),
+        content: Text(
+          'Produk "${_product?.name}" tidak akan muncul dalam daftar menu aktif, namun resep dan riwayat penjualannya tetap aman tersimpan.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Batal'),
           ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Nonaktifkan'),
+          ),
+        ],
+      ),
     );
 
     if (confirmed == true && _product?.id != null) {
@@ -267,10 +266,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       _showFeedback('Produk berhasil diaktifkan kembali.');
       _loadData();
     } catch (e) {
-      _showFeedback(
-        e.toString().replaceAll('Exception: ', ''),
-        isError: true,
-      );
+      _showFeedback(e.toString().replaceAll('Exception: ', ''), isError: true);
     }
   }
 
@@ -289,36 +285,35 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 if (val == 'edit') _openEditSheet();
                 if (val == 'deactivate') _confirmDeactivate();
               },
-              itemBuilder:
-                  (context) => [
-                    const PopupMenuItem(
-                      value: 'edit',
-                      child: Row(
-                        children: [
-                          Icon(Icons.edit_outlined, size: 18),
-                          SizedBox(width: 8),
-                          Text('Edit'),
-                        ],
+              itemBuilder: (context) => [
+                const PopupMenuItem(
+                  value: 'edit',
+                  child: Row(
+                    children: [
+                      Icon(Icons.edit_outlined, size: 18),
+                      SizedBox(width: 8),
+                      Text('Edit'),
+                    ],
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 'deactivate',
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.archive_outlined,
+                        size: 18,
+                        color: colorScheme.error,
                       ),
-                    ),
-                    PopupMenuItem(
-                      value: 'deactivate',
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.archive_outlined,
-                            size: 18,
-                            color: colorScheme.error,
-                          ),
-                          SizedBox(width: 8),
-                          Text(
-                            'Nonaktifkan',
-                            style: TextStyle(color: colorScheme.error),
-                          ),
-                        ],
+                      SizedBox(width: 8),
+                      Text(
+                        'Nonaktifkan',
+                        style: TextStyle(color: colorScheme.error),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
+                ),
+              ],
             )
           else if (_product != null && _product!.isInactive)
             TextButton.icon(
@@ -328,12 +323,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             ),
         ],
       ),
-      body:
-          _isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : _errorMessage != null
-              ? Center(child: Text(_errorMessage!))
-              : _buildContent(context),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _errorMessage != null
+          ? Center(child: Text(_errorMessage!))
+          : _buildContent(context),
     );
   }
 
@@ -361,20 +355,18 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   vertical: 4,
                 ),
                 decoration: BoxDecoration(
-                  color:
-                      product.isActive
-                          ? colorScheme.primary.withAlpha(25)
-                          : colorScheme.outline.withAlpha(30),
+                  color: product.isActive
+                      ? colorScheme.primary.withAlpha(25)
+                      : colorScheme.outline.withAlpha(30),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
                   product.isActive ? 'Produk Aktif' : 'Produk Nonaktif',
                   style: theme.textTheme.labelMedium?.copyWith(
                     fontWeight: FontWeight.w700,
-                    color:
-                        product.isActive
-                            ? colorScheme.primary
-                            : colorScheme.outline,
+                    color: product.isActive
+                        ? colorScheme.primary
+                        : colorScheme.outline,
                   ),
                 ),
               ),
@@ -402,10 +394,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             children: [
               AppStatCard(
                 title: 'Harga Jual',
-                value:
-                    _currentPrice != null
-                        ? CurrencyFormatter.formatRupiah(sellingPrice)
-                        : 'Belum diatur',
+                value: _currentPrice != null
+                    ? CurrencyFormatter.formatRupiah(sellingPrice)
+                    : 'Belum diatur',
                 icon: Icons.payments_outlined,
               ),
               AppStatCard(
@@ -421,10 +412,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               ),
               AppStatCard(
                 title: 'Margin Laba',
-                value:
-                    sellingPrice > 0
-                        ? '${((profit / sellingPrice) * 100).toStringAsFixed(1)}%'
-                        : '0%',
+                value: sellingPrice > 0
+                    ? '${((profit / sellingPrice) * 100).toStringAsFixed(1)}%'
+                    : '0%',
                 icon: Icons.pie_chart_outline_rounded,
               ),
             ],
@@ -504,8 +494,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 final item = _activeItems[index];
                 final itemCostRes =
                     _calcResult?.itemResults.length == _activeItems.length
-                        ? _calcResult!.itemResults[index]
-                        : null;
+                    ? _calcResult!.itemResults[index]
+                    : null;
 
                 return _buildRecipeItemRow(context, item, itemCostRes);
               },
@@ -581,20 +571,18 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           vertical: 2,
                         ),
                         decoration: BoxDecoration(
-                          color:
-                              v.isActive
-                                  ? colorScheme.primary.withAlpha(30)
-                                  : colorScheme.outline.withAlpha(30),
+                          color: v.isActive
+                              ? colorScheme.primary.withAlpha(30)
+                              : colorScheme.outline.withAlpha(30),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
                           v.isActive ? 'Aktif' : 'Arsip',
                           style: theme.textTheme.labelSmall?.copyWith(
                             fontWeight: FontWeight.w600,
-                            color:
-                                v.isActive
-                                    ? colorScheme.primary
-                                    : colorScheme.outline,
+                            color: v.isActive
+                                ? colorScheme.primary
+                                : colorScheme.outline,
                           ),
                         ),
                       ),
@@ -709,10 +697,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   ? Icons.blender_outlined
                   : Icons.receipt_outlined,
               size: 20,
-              color:
-                  item.isProcessed
-                      ? colorScheme.secondary
-                      : colorScheme.primary,
+              color: item.isProcessed
+                  ? colorScheme.secondary
+                  : colorScheme.primary,
             ),
             const SizedBox(width: 10),
 
@@ -770,11 +757,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             Text(
               costResult != null
                   ? CurrencyFormatter.formatRupiah(
-                    costResult.calculatedCost.round(),
-                  )
+                      costResult.calculatedCost.round(),
+                    )
                   : (item.otherCost != null
-                      ? CurrencyFormatter.formatRupiah(item.otherCost!)
-                      : '—'),
+                        ? CurrencyFormatter.formatRupiah(item.otherCost!)
+                        : '—'),
               style: theme.textTheme.bodyMedium?.copyWith(
                 fontWeight: FontWeight.w700,
                 color: colorScheme.onSurface,
@@ -786,4 +773,3 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     );
   }
 }
-

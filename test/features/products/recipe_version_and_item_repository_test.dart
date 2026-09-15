@@ -72,46 +72,49 @@ void main() {
       expect(active?.id, v1.id);
     });
 
-    test('16 & 17. create second version = v2 and archive old version', () async {
-      // v1
-      final v1 = await versionRepo.create(
-        RecipeVersion(
-          productId: productId,
-          versionNumber: 1,
-          effectiveFrom: '2026-09-01',
-          hppTotal: 2000,
-          status: 'active',
-          createdAt: '2026-09-01T00:00:00Z',
-        ),
-      );
+    test(
+      '16 & 17. create second version = v2 and archive old version',
+      () async {
+        // v1
+        final v1 = await versionRepo.create(
+          RecipeVersion(
+            productId: productId,
+            versionNumber: 1,
+            effectiveFrom: '2026-09-01',
+            hppTotal: 2000,
+            status: 'active',
+            createdAt: '2026-09-01T00:00:00Z',
+          ),
+        );
 
-      // Archive v1
-      await versionRepo.archiveActiveVersions(productId);
+        // Archive v1
+        await versionRepo.archiveActiveVersions(productId);
 
-      // Next version is v2
-      final nextVer = await versionRepo.getNextVersionNumber(productId);
-      expect(nextVer, 2);
+        // Next version is v2
+        final nextVer = await versionRepo.getNextVersionNumber(productId);
+        expect(nextVer, 2);
 
-      // v2
-      final v2 = await versionRepo.create(
-        RecipeVersion(
-          productId: productId,
-          versionNumber: nextVer,
-          effectiveFrom: '2026-09-15',
-          hppTotal: 2200,
-          status: 'active',
-          createdAt: '2026-09-15T00:00:00Z',
-        ),
-      );
+        // v2
+        final v2 = await versionRepo.create(
+          RecipeVersion(
+            productId: productId,
+            versionNumber: nextVer,
+            effectiveFrom: '2026-09-15',
+            hppTotal: 2200,
+            status: 'active',
+            createdAt: '2026-09-15T00:00:00Z',
+          ),
+        );
 
-      expect(v2.versionNumber, 2);
+        expect(v2.versionNumber, 2);
 
-      final active = await versionRepo.getActiveVersion(productId);
-      expect(active?.id, v2.id);
+        final active = await versionRepo.getActiveVersion(productId);
+        expect(active?.id, v2.id);
 
-      final checkV1 = await versionRepo.getById(v1.id!);
-      expect(checkV1?.isArchived, true);
-    });
+        final checkV1 = await versionRepo.getById(v1.id!);
+        expect(checkV1?.isArchived, true);
+      },
+    );
 
     test('18. version history preserved', () async {
       await versionRepo.create(
@@ -299,27 +302,29 @@ void main() {
       expect(items.isEmpty, true);
     });
 
-    test('Historical recipe item preserved even when master ingredient becomes inactive', () async {
-      final kopi = await ingredientRepo.create('Kopi Hitam');
-      await itemRepo.create(
-        RecipeItem(
-          recipeVersionId: versionId,
-          componentType: RecipeItem.typeIngredient,
-          ingredientId: kopi.id,
-          quantity: 15,
-          unit: 'g',
-          createdAt: '2026-09-01T00:00:00Z',
-        ),
-      );
+    test(
+      'Historical recipe item preserved even when master ingredient becomes inactive',
+      () async {
+        final kopi = await ingredientRepo.create('Kopi Hitam');
+        await itemRepo.create(
+          RecipeItem(
+            recipeVersionId: versionId,
+            componentType: RecipeItem.typeIngredient,
+            ingredientId: kopi.id,
+            quantity: 15,
+            unit: 'g',
+            createdAt: '2026-09-01T00:00:00Z',
+          ),
+        );
 
-      // Deaktivasi kopi hitam
-      await ingredientRepo.deactivate(kopi.id!);
+        // Deaktivasi kopi hitam
+        await ingredientRepo.deactivate(kopi.id!);
 
-      // Resep historis tetap harus dapat membaca nama 'Kopi Hitam'
-      final items = await itemRepo.getByRecipeVersionId(versionId);
-      expect(items.length, 1);
-      expect(items.first.ingredientName, 'Kopi Hitam');
-    });
+        // Resep historis tetap harus dapat membaca nama 'Kopi Hitam'
+        final items = await itemRepo.getByRecipeVersionId(versionId);
+        expect(items.length, 1);
+        expect(items.first.ingredientName, 'Kopi Hitam');
+      },
+    );
   });
 }
-

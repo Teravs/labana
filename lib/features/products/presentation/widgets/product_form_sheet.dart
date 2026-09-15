@@ -101,18 +101,17 @@ class ProductFormSheet extends StatefulWidget {
       isScrollControlled: true,
       useSafeArea: true,
       backgroundColor: Colors.transparent,
-      builder:
-          (context) => ProductFormSheet(
-            initialProduct: initialProduct,
-            initialRecipeVersion: initialRecipeVersion,
-            initialItems: initialItems,
-            initialPrice: initialPrice,
-            productRepository: productRepository,
-            ingredientRepository: ingredientRepository,
-            priceRepository: priceRepository,
-            processedRepository: processedRepository,
-            onSave: onSave,
-          ),
+      builder: (context) => ProductFormSheet(
+        initialProduct: initialProduct,
+        initialRecipeVersion: initialRecipeVersion,
+        initialItems: initialItems,
+        initialPrice: initialPrice,
+        productRepository: productRepository,
+        ingredientRepository: ingredientRepository,
+        priceRepository: priceRepository,
+        processedRepository: processedRepository,
+        onSave: onSave,
+      ),
     );
   }
 
@@ -162,7 +161,9 @@ class _ProductFormSheetState extends State<ProductFormSheet> {
       text: widget.initialProduct?.name ?? '',
     );
     _sellingPriceController = TextEditingController(
-      text: widget.initialPrice != null ? '${widget.initialPrice!.sellingPrice}' : '',
+      text: widget.initialPrice != null
+          ? '${widget.initialPrice!.sellingPrice}'
+          : '',
     );
     _effectiveDate =
         widget.initialRecipeVersion?.effectiveFrom ??
@@ -177,15 +178,15 @@ class _ProductFormSheetState extends State<ProductFormSheet> {
             type: item.componentType,
             ingredientId: item.ingredientId,
             processedIngredientId: item.processedIngredientId,
-            initialQuantity:
-                item.quantity != null
-                    ? (item.quantity! % 1 == 0
-                        ? item.quantity!.toInt().toString()
-                        : item.quantity!.toString())
-                    : '',
+            initialQuantity: item.quantity != null
+                ? (item.quantity! % 1 == 0
+                      ? item.quantity!.toInt().toString()
+                      : item.quantity!.toString())
+                : '',
             unit: item.unit ?? 'g',
-            initialOtherCost:
-                item.otherCost != null ? item.otherCost!.toString() : '',
+            initialOtherCost: item.otherCost != null
+                ? item.otherCost!.toString()
+                : '',
             initialLabel: item.label ?? '',
           ),
         );
@@ -323,8 +324,9 @@ class _ProductFormSheetState extends State<ProductFormSheet> {
 
   void _addIngredientComponent() {
     setState(() {
-      final defaultIng =
-          _activeIngredients.isNotEmpty ? _activeIngredients.first : null;
+      final defaultIng = _activeIngredients.isNotEmpty
+          ? _activeIngredients.first
+          : null;
       final defaultUnit =
           (defaultIng?.id != null
               ? _pricesMap[defaultIng!.id!]?.firstOrNull?.baseUnit
@@ -343,8 +345,9 @@ class _ProductFormSheetState extends State<ProductFormSheet> {
 
   void _addProcessedComponent() {
     setState(() {
-      final defaultProc =
-          _activeProcessed.isNotEmpty ? _activeProcessed.first : null;
+      final defaultProc = _activeProcessed.isNotEmpty
+          ? _activeProcessed.first
+          : null;
       _componentEntries.add(
         _RecipeComponentEntry(
           type: RecipeItem.typeProcessed,
@@ -384,7 +387,11 @@ class _ProductFormSheetState extends State<ProductFormSheet> {
     if (parts.length == 3) {
       initial =
           DateTime.tryParse(_effectiveDate) ??
-          DateTime(int.parse(parts[0]), int.parse(parts[1]), int.parse(parts[2]));
+          DateTime(
+            int.parse(parts[0]),
+            int.parse(parts[1]),
+            int.parse(parts[2]),
+          );
     }
 
     final picked = await showDatePicker(
@@ -430,7 +437,8 @@ class _ProductFormSheetState extends State<ProductFormSheet> {
       if (entry.type == RecipeItem.typeIngredient) {
         if (entry.ingredientId == null) {
           setState(() {
-            _errorMessage = 'Bahan mentah pada komponen #${i + 1} belum dipilih.';
+            _errorMessage =
+                'Bahan mentah pada komponen #${i + 1} belum dipilih.';
           });
           return;
         }
@@ -531,8 +539,7 @@ class _ProductFormSheetState extends State<ProductFormSheet> {
     final colorScheme = theme.colorScheme;
     final isEdit = widget.initialProduct != null;
 
-    final sellingPrice =
-        int.tryParse(_sellingPriceController.text.trim()) ?? 0;
+    final sellingPrice = int.tryParse(_sellingPriceController.text.trim()) ?? 0;
     final hpp = _calcResult.hppTotal;
     final profit = sellingPrice - hpp;
     final isBelowHpp = sellingPrice > 0 && sellingPrice < hpp;
@@ -547,352 +554,345 @@ class _ProductFormSheetState extends State<ProductFormSheet> {
       ),
       child: SafeArea(
         top: false,
-        child:
-            _isLoadingData
-                ? const SizedBox(
-                  height: 200,
-                  child: Center(child: CircularProgressIndicator()),
-                )
-                : SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        // Drag Handle
-                        Center(
-                          child: Container(
-                            width: 36,
-                            height: 4,
-                            margin: const EdgeInsets.only(bottom: 16),
-                            decoration: BoxDecoration(
-                              color: colorScheme.outline.withAlpha(80),
-                              borderRadius: BorderRadius.circular(2),
-                            ),
+        child: _isLoadingData
+            ? const SizedBox(
+                height: 200,
+                child: Center(child: CircularProgressIndicator()),
+              )
+            : SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Drag Handle
+                      Center(
+                        child: Container(
+                          width: 36,
+                          height: 4,
+                          margin: const EdgeInsets.only(bottom: 16),
+                          decoration: BoxDecoration(
+                            color: colorScheme.outline.withAlpha(80),
+                            borderRadius: BorderRadius.circular(2),
                           ),
                         ),
+                      ),
 
-                        // Title
-                        Text(
-                          isEdit ? 'Edit Produk' : 'Tambah Produk Baru',
-                          style: theme.textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w700,
+                      // Title
+                      Text(
+                        isEdit ? 'Edit Produk' : 'Tambah Produk Baru',
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Pesan Error jika ada
+                      if (_errorMessage != null) ...[
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: colorScheme.errorContainer,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.error_outline,
+                                size: 20,
+                                color: colorScheme.onErrorContainer,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  _errorMessage!,
+                                  style: TextStyle(
+                                    color: colorScheme.onErrorContainer,
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                         const SizedBox(height: 16),
+                      ],
 
-                        // Pesan Error jika ada
-                        if (_errorMessage != null) ...[
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: colorScheme.errorContainer,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.error_outline,
-                                  size: 20,
-                                  color: colorScheme.onErrorContainer,
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    _errorMessage!,
-                                    style: TextStyle(
-                                      color: colorScheme.onErrorContainer,
-                                      fontWeight: FontWeight.w500,
-                                      fontSize: 13,
-                                    ),
-                                  ),
-                                ),
-                              ],
+                      // Section 1: Nama Produk
+                      TextFormField(
+                        controller: _nameController,
+                        textCapitalization: TextCapitalization.words,
+                        decoration: const InputDecoration(
+                          labelText: 'Nama Produk',
+                          hintText: 'Contoh: Es Teh Manis',
+                          prefixIcon: Icon(Icons.local_cafe_outlined),
+                        ),
+                        validator: (val) {
+                          if (val == null || val.trim().isEmpty) {
+                            return 'Nama produk wajib diisi.';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Section 2: Komposisi Resep
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Komposisi Resep',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
-                          const SizedBox(height: 16),
+                          Text(
+                            '${_componentEntries.length} Komponen',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: colorScheme.outline,
+                            ),
+                          ),
                         ],
+                      ),
+                      const SizedBox(height: 8),
 
-                        // Section 1: Nama Produk
-                        TextFormField(
-                          controller: _nameController,
-                          textCapitalization: TextCapitalization.words,
-                          decoration: const InputDecoration(
-                            labelText: 'Nama Produk',
-                            hintText: 'Contoh: Es Teh Manis',
-                            prefixIcon: Icon(Icons.local_cafe_outlined),
+                      // Tombol Tambah Komponen (Wrap 3 Tombol)
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          OutlinedButton.icon(
+                            onPressed: _addIngredientComponent,
+                            icon: const Icon(Icons.add, size: 16),
+                            label: const Text('Bahan Mentah'),
                           ),
-                          validator: (val) {
-                            if (val == null || val.trim().isEmpty) {
-                              return 'Nama produk wajib diisi.';
-                            }
-                            return null;
+                          OutlinedButton.icon(
+                            onPressed: _addProcessedComponent,
+                            icon: const Icon(Icons.blender_outlined, size: 16),
+                            label: const Text('Bahan Olahan'),
+                          ),
+                          OutlinedButton.icon(
+                            onPressed: _addOtherComponent,
+                            icon: const Icon(Icons.receipt_outlined, size: 16),
+                            label: const Text('Biaya Lainnya'),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Daftar Kartu Komponen
+                      if (_componentEntries.isEmpty)
+                        Container(
+                          padding: const EdgeInsets.symmetric(vertical: 24),
+                          alignment: Alignment.center,
+                          child: Text(
+                            'Belum ada komponen resep. Tambahkan minimal 1 komponen.',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: colorScheme.outline,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        )
+                      else
+                        ListView.separated(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: _componentEntries.length,
+                          separatorBuilder: (context, i) =>
+                              const SizedBox(height: 10),
+                          itemBuilder: (context, index) {
+                            return _buildComponentCard(context, index);
                           },
                         ),
-                        const SizedBox(height: 20),
+                      const SizedBox(height: 20),
 
-                        // Section 2: Komposisi Resep
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Komposisi Resep',
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            Text(
-                              '${_componentEntries.length} Komponen',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: colorScheme.outline,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-
-                        // Tombol Tambah Komponen (Wrap 3 Tombol)
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            OutlinedButton.icon(
-                              onPressed: _addIngredientComponent,
-                              icon: const Icon(Icons.add, size: 16),
-                              label: const Text('Bahan Mentah'),
-                            ),
-                            OutlinedButton.icon(
-                              onPressed: _addProcessedComponent,
-                              icon: const Icon(Icons.blender_outlined, size: 16),
-                              label: const Text('Bahan Olahan'),
-                            ),
-                            OutlinedButton.icon(
-                              onPressed: _addOtherComponent,
-                              icon: const Icon(Icons.receipt_outlined, size: 16),
-                              label: const Text('Biaya Lainnya'),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-
-                        // Daftar Kartu Komponen
-                        if (_componentEntries.isEmpty)
-                          Container(
-                            padding: const EdgeInsets.symmetric(vertical: 24),
-                            alignment: Alignment.center,
-                            child: Text(
-                              'Belum ada komponen resep. Tambahkan minimal 1 komponen.',
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: colorScheme.outline,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          )
-                        else
-                          ListView.separated(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemCount: _componentEntries.length,
-                            separatorBuilder:
-                                (context, i) => const SizedBox(height: 10),
-                            itemBuilder: (context, index) {
-                              return _buildComponentCard(context, index);
-                            },
-                          ),
-                        const SizedBox(height: 20),
-
-                        // Section 3: Live Preview Estimasi HPP
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: colorScheme.primaryContainer.withAlpha(70),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: colorScheme.primary.withAlpha(40),
-                            ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Icon(
-                                    Icons.analytics_outlined,
-                                    size: 18,
-                                    color: colorScheme.primary,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    'Estimasi HPP Resep',
-                                    style: theme.textTheme.labelMedium?.copyWith(
-                                      fontWeight: FontWeight.w700,
-                                      color: colorScheme.primary,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                CurrencyFormatter.formatRupiah(
-                                  _calcResult.hppTotal,
-                                ),
-                                style: theme.textTheme.titleLarge?.copyWith(
-                                  fontWeight: FontWeight.w800,
-                                  color: colorScheme.onSurface,
-                                ),
-                              ),
-                              if (_calcResult.hasUnresolvedCost) ...[
-                                const SizedBox(height: 4),
-                                Text(
-                                  'Perhatian: Sebagian harga bahan belum lengkap.',
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: colorScheme.error,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ],
+                      // Section 3: Live Preview Estimasi HPP
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: colorScheme.primaryContainer.withAlpha(70),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: colorScheme.primary.withAlpha(40),
                           ),
                         ),
-                        const SizedBox(height: 20),
-
-                        // Section 4: Harga Jual & Tanggal Efektif
-                        Row(
+                        child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Expanded(
-                              flex: 3,
-                              child: TextFormField(
-                                controller: _sellingPriceController,
-                                keyboardType: TextInputType.number,
-                                inputFormatters: [
-                                  FilteringTextInputFormatter.digitsOnly,
-                                ],
-                                decoration: const InputDecoration(
-                                  labelText: 'Harga Jual (Rp)',
-                                  hintText: 'Contoh: 5000',
-                                  prefixText: 'Rp',
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.analytics_outlined,
+                                  size: 18,
+                                  color: colorScheme.primary,
                                 ),
-                                onChanged: (_) => setState(() {}),
-                                validator: (val) {
-                                  if (val == null || val.trim().isEmpty) {
-                                    return 'Harga jual wajib diisi.';
-                                  }
-                                  final numVal = int.tryParse(val.trim());
-                                  if (numVal == null || numVal < 0) {
-                                    return 'Harga tidak valid.';
-                                  }
-                                  return null;
-                                },
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              flex: 2,
-                              child: InkWell(
-                                onTap: _pickEffectiveDate,
-                                borderRadius: BorderRadius.circular(8),
-                                child: InputDecorator(
-                                  decoration: const InputDecoration(
-                                    labelText: 'Tanggal Efektif',
-                                    suffixIcon: Icon(
-                                      Icons.calendar_today,
-                                      size: 18,
-                                    ),
-                                  ),
-                                  child: Text(
-                                    _effectiveDate,
-                                    style: theme.textTheme.bodyMedium,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-
-                        // Section 5: Preview Laba
-                        Container(
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color:
-                                isBelowHpp
-                                    ? colorScheme.errorContainer.withAlpha(60)
-                                    : AppColors.accent.withAlpha(20),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color:
-                                  isBelowHpp
-                                      ? colorScheme.error.withAlpha(80)
-                                      : AppColors.accent.withAlpha(60),
-                            ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    'Estimasi Laba per Porsi',
-                                    style: theme.textTheme.labelMedium?.copyWith(
-                                      fontWeight: FontWeight.w700,
-                                      color:
-                                          isBelowHpp
-                                              ? colorScheme.error
-                                              : AppColors.accent,
-                                    ),
-                                  ),
-                                  Text(
-                                    CurrencyFormatter.formatRupiah(profit),
-                                    style: theme.textTheme.titleMedium?.copyWith(
-                                      fontWeight: FontWeight.w800,
-                                      color:
-                                          isBelowHpp
-                                              ? colorScheme.error
-                                              : AppColors.accent,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              if (isBelowHpp) ...[
-                                const SizedBox(height: 6),
+                                const SizedBox(width: 8),
                                 Text(
-                                  'Peringatan: Harga jual berada di bawah HPP resep.',
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: colorScheme.error,
-                                    fontWeight: FontWeight.w600,
+                                  'Estimasi HPP Resep',
+                                  style: theme.textTheme.labelMedium?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                    color: colorScheme.primary,
                                   ),
                                 ),
                               ],
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              CurrencyFormatter.formatRupiah(
+                                _calcResult.hppTotal,
+                              ),
+                              style: theme.textTheme.titleLarge?.copyWith(
+                                fontWeight: FontWeight.w800,
+                                color: colorScheme.onSurface,
+                              ),
+                            ),
+                            if (_calcResult.hasUnresolvedCost) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                'Perhatian: Sebagian harga bahan belum lengkap.',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: colorScheme.error,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
                             ],
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Section 4: Harga Jual & Tanggal Efektif
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            flex: 3,
+                            child: TextFormField(
+                              controller: _sellingPriceController,
+                              keyboardType: TextInputType.number,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly,
+                              ],
+                              decoration: const InputDecoration(
+                                labelText: 'Harga Jual (Rp)',
+                                hintText: 'Contoh: 5000',
+                                prefixText: 'Rp',
+                              ),
+                              onChanged: (_) => setState(() {}),
+                              validator: (val) {
+                                if (val == null || val.trim().isEmpty) {
+                                  return 'Harga jual wajib diisi.';
+                                }
+                                final numVal = int.tryParse(val.trim());
+                                if (numVal == null || numVal < 0) {
+                                  return 'Harga tidak valid.';
+                                }
+                                return null;
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            flex: 2,
+                            child: InkWell(
+                              onTap: _pickEffectiveDate,
+                              borderRadius: BorderRadius.circular(8),
+                              child: InputDecorator(
+                                decoration: const InputDecoration(
+                                  labelText: 'Tanggal Efektif',
+                                  suffixIcon: Icon(
+                                    Icons.calendar_today,
+                                    size: 18,
+                                  ),
+                                ),
+                                child: Text(
+                                  _effectiveDate,
+                                  style: theme.textTheme.bodyMedium,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Section 5: Preview Laba
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: isBelowHpp
+                              ? colorScheme.errorContainer.withAlpha(60)
+                              : AppColors.accent.withAlpha(20),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isBelowHpp
+                                ? colorScheme.error.withAlpha(80)
+                                : AppColors.accent.withAlpha(60),
                           ),
                         ),
-                        const SizedBox(height: 24),
-
-                        // Tombol Submit
-                        FilledButton(
-                          onPressed: _isSubmitting ? null : _submitForm,
-                          child:
-                              _isSubmitting
-                                  ? const SizedBox(
-                                    height: 20,
-                                    width: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                  : Text(
-                                    isEdit ? 'Simpan Perubahan' : 'Simpan Produk',
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  'Estimasi Laba per Porsi',
+                                  style: theme.textTheme.labelMedium?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                    color: isBelowHpp
+                                        ? colorScheme.error
+                                        : AppColors.accent,
                                   ),
+                                ),
+                                Text(
+                                  CurrencyFormatter.formatRupiah(profit),
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                    color: isBelowHpp
+                                        ? colorScheme.error
+                                        : AppColors.accent,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            if (isBelowHpp) ...[
+                              const SizedBox(height: 6),
+                              Text(
+                                'Peringatan: Harga jual berada di bawah HPP resep.',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: colorScheme.error,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Tombol Submit
+                      FilledButton(
+                        onPressed: _isSubmitting ? null : _submitForm,
+                        child: _isSubmitting
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : Text(
+                                isEdit ? 'Simpan Perubahan' : 'Simpan Produk',
+                              ),
+                      ),
+                    ],
                   ),
                 ),
+              ),
       ),
     );
   }
@@ -923,12 +923,11 @@ class _ProductFormSheetState extends State<ProductFormSheet> {
                     vertical: 2,
                   ),
                   decoration: BoxDecoration(
-                    color:
-                        entry.type == RecipeItem.typeIngredient
-                            ? colorScheme.primary.withAlpha(30)
-                            : entry.type == RecipeItem.typeProcessed
-                            ? colorScheme.secondary.withAlpha(30)
-                            : colorScheme.secondary.withAlpha(30),
+                    color: entry.type == RecipeItem.typeIngredient
+                        ? colorScheme.primary.withAlpha(30)
+                        : entry.type == RecipeItem.typeProcessed
+                        ? colorScheme.secondary.withAlpha(30)
+                        : colorScheme.secondary.withAlpha(30),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
@@ -963,13 +962,12 @@ class _ProductFormSheetState extends State<ProductFormSheet> {
                   labelText: 'Pilih Bahan Mentah',
                   isDense: true,
                 ),
-                items:
-                    _activeIngredients.map((ing) {
-                      return DropdownMenuItem<int>(
-                        value: ing.id,
-                        child: Text(ing.name),
-                      );
-                    }).toList(),
+                items: _activeIngredients.map((ing) {
+                  return DropdownMenuItem<int>(
+                    value: ing.id,
+                    child: Text(ing.name),
+                  );
+                }).toList(),
                 onChanged: (val) {
                   setState(() {
                     entry.ingredientId = val;
@@ -1032,20 +1030,18 @@ class _ProductFormSheetState extends State<ProductFormSheet> {
                   labelText: 'Pilih Bahan Olahan',
                   isDense: true,
                 ),
-                items:
-                    _activeProcessed.map((pi) {
-                      return DropdownMenuItem<int>(
-                        value: pi.id,
-                        child: Text(pi.name),
-                      );
-                    }).toList(),
+                items: _activeProcessed.map((pi) {
+                  return DropdownMenuItem<int>(
+                    value: pi.id,
+                    child: Text(pi.name),
+                  );
+                }).toList(),
                 onChanged: (val) {
                   setState(() {
                     entry.processedIngredientId = val;
-                    final sel =
-                        _activeProcessed
-                            .where((pi) => pi.id == val)
-                            .firstOrNull;
+                    final sel = _activeProcessed
+                        .where((pi) => pi.id == val)
+                        .firstOrNull;
                     if (sel != null) {
                       entry.unit = sel.resultUnit;
                     }
@@ -1136,4 +1132,3 @@ class _ProductFormSheetState extends State<ProductFormSheet> {
     );
   }
 }
-

@@ -20,7 +20,8 @@ class ProductPrice {
   });
 
   /// Format harga jual ke standar Rupiah (misal "Rp3.000").
-  String get formattedSellingPrice => CurrencyFormatter.formatRupiah(sellingPrice);
+  String get formattedSellingPrice =>
+      CurrencyFormatter.formatRupiah(sellingPrice);
 
   /// Membuat instance [ProductPrice] dari Map SQLite.
   factory ProductPrice.fromMap(Map<String, dynamic> map) {
@@ -82,4 +83,3 @@ class ProductPrice {
       effectiveFrom.hashCode ^
       createdAt.hashCode;
 }
-

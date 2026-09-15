@@ -199,10 +199,9 @@ class RecipeCalculator {
         final hasAnyEffective = prices.any(
           (p) => p.effectiveFrom.compareTo(calculationDate) <= 0,
         );
-        final error =
-            hasAnyEffective
-                ? 'Satuan "${item.unit}" tidak cocok dengan format harga "$name".'
-                : 'Belum ada harga aktif untuk "$name" per tanggal $calculationDate.';
+        final error = hasAnyEffective
+            ? 'Satuan "${item.unit}" tidak cocok dengan format harga "$name".'
+            : 'Belum ada harga aktif untuk "$name" per tanggal $calculationDate.';
 
         return RecipeItemCostResult(
           item: item,
@@ -255,7 +254,8 @@ class RecipeCalculator {
           item: item,
           calculatedCost: 0.0,
           isResolvable: false,
-          errorMessage: 'Jumlah atau satuan bahan olahan "$childName" tidak valid.',
+          errorMessage:
+              'Jumlah atau satuan bahan olahan "$childName" tidak valid.',
           itemName: childName,
         );
       }
@@ -302,10 +302,9 @@ class RecipeCalculator {
           purchaseUnit: child.resultUnit,
         );
         final childBaseQty = childConversion.baseQuantity;
-        final childCostPerBaseUnit =
-            childBaseQty > 0
-                ? (childCostResult.totalCost / childBaseQty)
-                : 0.0;
+        final childCostPerBaseUnit = childBaseQty > 0
+            ? (childCostResult.totalCost / childBaseQty)
+            : 0.0;
 
         final compConversion = UnitConverter.convert(
           purchaseQuantity: item.quantity!,
@@ -319,10 +318,9 @@ class RecipeCalculator {
           item: item,
           calculatedCost: cost,
           isResolvable: !childCostResult.hasUnresolvedCost,
-          errorMessage:
-              childCostResult.hasUnresolvedCost
-                  ? 'Sebagian biaya bahan olahan "$childName" belum lengkap.'
-                  : null,
+          errorMessage: childCostResult.hasUnresolvedCost
+              ? 'Sebagian biaya bahan olahan "$childName" belum lengkap.'
+              : null,
           itemName: childName,
         );
       } on UnitConversionException catch (e) {
@@ -370,4 +368,3 @@ class RecipeCalculator {
     return sellingPrice < hppTotal;
   }
 }
-

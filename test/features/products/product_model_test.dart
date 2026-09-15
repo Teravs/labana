@@ -38,7 +38,10 @@ void main() {
         updatedAt: '2026-09-01T08:00:00Z',
       );
 
-      final updated = product.copyWith(name: 'Es Teh Manis Jumbo', status: 'inactive');
+      final updated = product.copyWith(
+        name: 'Es Teh Manis Jumbo',
+        status: 'inactive',
+      );
       expect(updated.id, 1);
       expect(updated.name, 'Es Teh Manis Jumbo');
       expect(updated.status, 'inactive');
@@ -48,25 +51,28 @@ void main() {
   });
 
   group('ProductPrice Model Tests', () {
-    test('fromMap & toMap bekerja dengan benar dan harga jual bertipe int Rupiah', () {
-      final price = ProductPrice(
-        id: 10,
-        productId: 1,
-        sellingPrice: 5000,
-        effectiveFrom: '2026-09-01',
-        createdAt: '2026-09-01T08:00:00Z',
-      );
+    test(
+      'fromMap & toMap bekerja dengan benar dan harga jual bertipe int Rupiah',
+      () {
+        final price = ProductPrice(
+          id: 10,
+          productId: 1,
+          sellingPrice: 5000,
+          effectiveFrom: '2026-09-01',
+          createdAt: '2026-09-01T08:00:00Z',
+        );
 
-      final map = price.toMap();
-      expect(map['id'], 10);
-      expect(map['product_id'], 1);
-      expect(map['selling_price'], 5000);
-      expect(map['selling_price'] is int, true);
-      expect(map['effective_from'], '2026-09-01');
+        final map = price.toMap();
+        expect(map['id'], 10);
+        expect(map['product_id'], 1);
+        expect(map['selling_price'], 5000);
+        expect(map['selling_price'] is int, true);
+        expect(map['effective_from'], '2026-09-01');
 
-      final fromMap = ProductPrice.fromMap(map);
-      expect(fromMap.formattedSellingPrice, 'Rp5.000');
-    });
+        final fromMap = ProductPrice.fromMap(map);
+        expect(fromMap.formattedSellingPrice, 'Rp5.000');
+      },
+    );
   });
 
   group('RecipeVersion Model Tests', () {
@@ -99,32 +105,35 @@ void main() {
   });
 
   group('RecipeItem Model Tests', () {
-    test('Komponen ingredient: fromMap & toMap tidak menyimpan field transient', () {
-      final item = RecipeItem(
-        id: 1,
-        recipeVersionId: 5,
-        componentType: RecipeItem.typeIngredient,
-        ingredientId: 2,
-        quantity: 50,
-        unit: 'g',
-        createdAt: '2026-09-15T08:00:00Z',
-        ingredientName: 'Gula Pasir', // UI transient join
-      );
+    test(
+      'Komponen ingredient: fromMap & toMap tidak menyimpan field transient',
+      () {
+        final item = RecipeItem(
+          id: 1,
+          recipeVersionId: 5,
+          componentType: RecipeItem.typeIngredient,
+          ingredientId: 2,
+          quantity: 50,
+          unit: 'g',
+          createdAt: '2026-09-15T08:00:00Z',
+          ingredientName: 'Gula Pasir', // UI transient join
+        );
 
-      final map = item.toMap();
-      expect(map.containsKey('ingredient_name'), false);
-      expect(map.containsKey('label'), false);
-      expect(map['ingredient_id'], 2);
-      expect(map['quantity'], 50.0);
-      expect(map['unit'], 'g');
-      expect(map['other_cost'], null);
+        final map = item.toMap();
+        expect(map.containsKey('ingredient_name'), false);
+        expect(map.containsKey('label'), false);
+        expect(map['ingredient_id'], 2);
+        expect(map['quantity'], 50.0);
+        expect(map['unit'], 'g');
+        expect(map['other_cost'], null);
 
-      expect(item.isIngredient, true);
-      expect(item.isProcessed, false);
-      expect(item.isOther, false);
-      expect(item.formattedQuantity, '50 g');
-      expect(item.displayName, 'Gula Pasir');
-    });
+        expect(item.isIngredient, true);
+        expect(item.isProcessed, false);
+        expect(item.isOther, false);
+        expect(item.formattedQuantity, '50 g');
+        expect(item.displayName, 'Gula Pasir');
+      },
+    );
 
     test('Komponen processed: fromMap & toMap', () {
       final item = RecipeItem(
@@ -170,4 +179,3 @@ void main() {
     });
   });
 }
-

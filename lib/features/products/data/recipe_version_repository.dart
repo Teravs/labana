@@ -45,6 +45,28 @@ class RecipeVersionRepository {
     return RecipeVersion.fromMap(results.first);
   }
 
+  /// Mengambil versi resep yang berlaku pada [calculationDate].
+  ///
+  /// Aturan: `recipe_versions.effective_from <= calculationDate`
+  /// Diurutkan berdasarkan `effective_from DESC, id DESC LIMIT 1`.
+  /// Mengembalikan `null` jika tidak ada versi resep yang berlaku pada tanggal tersebut.
+  Future<RecipeVersion?> getEffectiveVersion(
+    int productId, {
+    required String calculationDate,
+    DatabaseExecutor? executor,
+  }) async {
+    final exec = executor ?? await _db;
+    final results = await exec.query(
+      TableNames.recipeVersions,
+      where: 'product_id = ? AND effective_from <= ?',
+      whereArgs: [productId, calculationDate],
+      orderBy: 'effective_from DESC, id DESC',
+      limit: 1,
+    );
+    if (results.isEmpty) return null;
+    return RecipeVersion.fromMap(results.first);
+  }
+
   /// Mengambil versi resep berdasarkan [id].
   Future<RecipeVersion?> getById(int id, {DatabaseExecutor? executor}) async {
     final exec = executor ?? await _db;
@@ -64,11 +86,14 @@ class RecipeVersionRepository {
     DatabaseExecutor? executor,
   }) async {
     final exec = executor ?? await _db;
-    final result = await exec.rawQuery('''
+    final result = await exec.rawQuery(
+      '''
       SELECT COALESCE(MAX(version_number), 0) + 1 AS next_version
       FROM ${TableNames.recipeVersions}
       WHERE product_id = ?
-    ''', [productId]);
+    ''',
+      [productId],
+    );
 
     if (result.isNotEmpty && result.first['next_version'] != null) {
       return (result.first['next_version'] as num).toInt();
@@ -111,4 +136,3 @@ class RecipeVersionRepository {
     return version.copyWith(id: id);
   }
 }
-

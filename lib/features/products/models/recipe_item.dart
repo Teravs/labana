@@ -175,4 +175,3 @@ class RecipeItem {
       otherCost.hashCode ^
       createdAt.hashCode;
 }
-

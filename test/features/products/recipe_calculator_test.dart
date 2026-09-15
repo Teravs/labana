@@ -331,22 +331,15 @@ void main() {
       );
       expect(profit, 2900);
       expect(
-        RecipeCalculator.isSellingBelowHpp(
-          sellingPrice: 5000,
-          hppTotal: 2100,
-        ),
+        RecipeCalculator.isSellingBelowHpp(sellingPrice: 5000, hppTotal: 2100),
         false,
       );
 
       // Warning when sellingPrice < HPP
       expect(
-        RecipeCalculator.isSellingBelowHpp(
-          sellingPrice: 2000,
-          hppTotal: 2100,
-        ),
+        RecipeCalculator.isSellingBelowHpp(sellingPrice: 2000, hppTotal: 2100),
         true,
       );
     });
   });
 }
-

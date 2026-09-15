@@ -82,4 +82,3 @@ class Product {
       createdAt.hashCode ^
       updatedAt.hashCode;
 }
-

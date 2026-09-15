@@ -52,19 +52,19 @@ class ProductCard extends StatelessWidget {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color:
-                      isActive
-                          ? colorScheme.primary.withAlpha(25)
-                          : colorScheme.outline.withAlpha(30),
+                  color: isActive
+                      ? colorScheme.primary.withAlpha(25)
+                      : colorScheme.outline.withAlpha(30),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
-                  isActive ? Icons.local_cafe_outlined : Icons.local_cafe_rounded,
+                  isActive
+                      ? Icons.local_cafe_outlined
+                      : Icons.local_cafe_rounded,
                   size: 22,
-                  color:
-                      isActive
-                          ? colorScheme.primary
-                          : colorScheme.onSurface.withAlpha(120),
+                  color: isActive
+                      ? colorScheme.primary
+                      : colorScheme.onSurface.withAlpha(120),
                 ),
               ),
               const SizedBox(width: 14),
@@ -81,12 +81,12 @@ class ProductCard extends StatelessWidget {
                             product.name,
                             style: theme.textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.w700,
-                              color:
-                                  isActive
-                                      ? colorScheme.onSurface
-                                      : colorScheme.onSurface.withAlpha(140),
-                              decoration:
-                                  isActive ? null : TextDecoration.lineThrough,
+                              color: isActive
+                                  ? colorScheme.onSurface
+                                  : colorScheme.onSurface.withAlpha(140),
+                              decoration: isActive
+                                  ? null
+                                  : TextDecoration.lineThrough,
                             ),
                           ),
                         ),
@@ -97,7 +97,9 @@ class ProductCard extends StatelessWidget {
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: colorScheme.secondaryContainer.withAlpha(150),
+                              color: colorScheme.secondaryContainer.withAlpha(
+                                150,
+                              ),
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
@@ -144,10 +146,9 @@ class ProductCard extends StatelessWidget {
                             Text(
                               'Laba: ${CurrencyFormatter.formatRupiah(profit)}',
                               style: theme.textTheme.bodySmall?.copyWith(
-                                color:
-                                    isBelowHpp
-                                        ? colorScheme.error
-                                        : AppColors.accent,
+                                color: isBelowHpp
+                                    ? colorScheme.error
+                                    : AppColors.accent,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -198,45 +199,41 @@ class ProductCard extends StatelessWidget {
                     if (value == 'edit') onEdit?.call();
                     if (value == 'deactivate') onDeactivate?.call();
                   },
-                  itemBuilder:
-                      (context) => [
-                        const PopupMenuItem(
-                          value: 'edit',
-                          child: Row(
-                            children: [
-                              Icon(Icons.edit_outlined, size: 18),
-                              SizedBox(width: 8),
-                              Text('Edit'),
-                            ],
+                  itemBuilder: (context) => [
+                    const PopupMenuItem(
+                      value: 'edit',
+                      child: Row(
+                        children: [
+                          Icon(Icons.edit_outlined, size: 18),
+                          SizedBox(width: 8),
+                          Text('Edit'),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'deactivate',
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.archive_outlined,
+                            size: 18,
+                            color: colorScheme.error,
                           ),
-                        ),
-                        PopupMenuItem(
-                          value: 'deactivate',
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.archive_outlined,
-                                size: 18,
-                                color: colorScheme.error,
-                              ),
-                              SizedBox(width: 8),
-                              Text(
-                                'Nonaktifkan',
-                                style: TextStyle(color: colorScheme.error),
-                              ),
-                            ],
+                          SizedBox(width: 8),
+                          Text(
+                            'Nonaktifkan',
+                            style: TextStyle(color: colorScheme.error),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
+                    ),
+                  ],
                 )
               else
                 IconButton(
                   onPressed: onActivate,
                   tooltip: 'Aktifkan Kembali',
-                  icon: Icon(
-                    Icons.replay_rounded,
-                    color: colorScheme.primary,
-                  ),
+                  icon: Icon(Icons.replay_rounded, color: colorScheme.primary),
                 ),
             ],
           ),
@@ -245,4 +242,3 @@ class ProductCard extends StatelessWidget {
     );
   }
 }
-

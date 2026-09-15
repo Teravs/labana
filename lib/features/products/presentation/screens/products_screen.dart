@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-
 import '../../../../core/widgets/app_empty_state.dart';
 import '../../../ingredients/data/ingredient_price_repository.dart';
 import '../../../ingredients/data/ingredient_repository.dart';
@@ -116,21 +115,22 @@ class _ProductsScreenState extends State<ProductsScreen> {
       ingredientRepository: _ingredientRepo,
       priceRepository: _ingredientPriceRepo,
       processedRepository: _processedRepo,
-      onSave: ({
-        required String name,
-        required List<RecipeItem> recipeItems,
-        required int sellingPrice,
-        required String effectiveDate,
-        required int hppTotal,
-      }) async {
-        await _productRepo.createProductWithRecipeAndPrice(
-          name: name,
-          recipeItems: recipeItems,
-          sellingPrice: sellingPrice,
-          effectiveDate: effectiveDate,
-          hppTotal: hppTotal,
-        );
-      },
+      onSave:
+          ({
+            required String name,
+            required List<RecipeItem> recipeItems,
+            required int sellingPrice,
+            required String effectiveDate,
+            required int hppTotal,
+          }) async {
+            await _productRepo.createProductWithRecipeAndPrice(
+              name: name,
+              recipeItems: recipeItems,
+              sellingPrice: sellingPrice,
+              effectiveDate: effectiveDate,
+              hppTotal: hppTotal,
+            );
+          },
     );
 
     if (created == true) {
@@ -146,8 +146,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
       ..showSnackBar(
         SnackBar(
           content: Text(message),
-          backgroundColor:
-              isError ? Theme.of(context).colorScheme.error : null,
+          backgroundColor: isError ? Theme.of(context).colorScheme.error : null,
           duration: const Duration(seconds: 2),
         ),
       );
@@ -161,26 +160,25 @@ class _ProductsScreenState extends State<ProductsScreen> {
   Future<void> _confirmDeactivate(Product product) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: const Text('Nonaktifkan Produk?'),
-            content: Text(
-              'Produk "${product.name}" akan dipindahkan ke tab Nonaktif. Resep dan riwayat harga tetap aman.',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(false),
-                child: const Text('Batal'),
-              ),
-              FilledButton(
-                style: FilledButton.styleFrom(
-                  backgroundColor: Theme.of(ctx).colorScheme.error,
-                ),
-                onPressed: () => Navigator.of(ctx).pop(true),
-                child: const Text('Nonaktifkan'),
-              ),
-            ],
+      builder: (ctx) => AlertDialog(
+        title: const Text('Nonaktifkan Produk?'),
+        content: Text(
+          'Produk "${product.name}" akan dipindahkan ke tab Nonaktif. Resep dan riwayat harga tetap aman.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Batal'),
           ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Nonaktifkan'),
+          ),
+        ],
+      ),
     );
 
     if (confirmed == true && product.id != null) {
@@ -201,19 +199,14 @@ class _ProductsScreenState extends State<ProductsScreen> {
       _showMessage('Produk berhasil diaktifkan kembali.');
       _loadProducts();
     } catch (e) {
-      _showMessage(
-        e.toString().replaceAll('Exception: ', ''),
-        isError: true,
-      );
+      _showMessage(e.toString().replaceAll('Exception: ', ''), isError: true);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Produk & Resep'),
-      ),
+      appBar: AppBar(title: const Text('Produk & Resep')),
       body: Column(
         children: [
           // Filter Status Tab (Aktif vs Nonaktif)
@@ -244,65 +237,61 @@ class _ProductsScreenState extends State<ProductsScreen> {
 
           // Konten Utama
           Expanded(
-            child:
-                _isLoading
-                    ? const Center(child: CircularProgressIndicator())
-                    : _errorMessage != null
-                    ? Center(child: Text(_errorMessage!))
-                    : _products.isEmpty
-                    ? AppEmptyState(
-                      icon: Icons.local_cafe_outlined,
-                      title:
-                          _selectedStatus == 'active'
-                              ? 'Belum Ada Produk'
-                              : 'Tidak Ada Produk Nonaktif',
-                      message:
-                          _selectedStatus == 'active'
-                              ? 'Mulai buat menu minuman Anda dengan menambahkan produk dan resep.'
-                              : 'Produk yang Anda nonaktifkan akan tampil di sini.',
-                    )
-                    : RefreshIndicator(
-                      onRefresh: _loadProducts,
-                      child: ListView.separated(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
-                        itemCount: _products.length,
-                        separatorBuilder:
-                            (context, i) => const SizedBox(height: 8),
-                        itemBuilder: (context, index) {
-                          final product = _products[index];
-                          final v = _activeVersions[product.id];
-                          final price = _currentPrices[product.id];
-
-                          return ProductCard(
-                            product: product,
-                            activeRecipeVersion: v,
-                            currentPrice: price,
-                            onTap: () {
-                              context
-                                  .push('/products/${product.id}')
-                                  .then((_) => _loadProducts());
-                            },
-                            onEdit: () => _openEditProduct(product),
-                            onDeactivate: () => _confirmDeactivate(product),
-                            onActivate: () => _activateProduct(product),
-                          );
-                        },
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _errorMessage != null
+                ? Center(child: Text(_errorMessage!))
+                : _products.isEmpty
+                ? AppEmptyState(
+                    icon: Icons.local_cafe_outlined,
+                    title: _selectedStatus == 'active'
+                        ? 'Belum Ada Produk'
+                        : 'Tidak Ada Produk Nonaktif',
+                    message: _selectedStatus == 'active'
+                        ? 'Mulai buat menu minuman Anda dengan menambahkan produk dan resep.'
+                        : 'Produk yang Anda nonaktifkan akan tampil di sini.',
+                  )
+                : RefreshIndicator(
+                    onRefresh: _loadProducts,
+                    child: ListView.separated(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
                       ),
+                      itemCount: _products.length,
+                      separatorBuilder: (context, i) =>
+                          const SizedBox(height: 8),
+                      itemBuilder: (context, index) {
+                        final product = _products[index];
+                        final v = _activeVersions[product.id];
+                        final price = _currentPrices[product.id];
+
+                        return ProductCard(
+                          product: product,
+                          activeRecipeVersion: v,
+                          currentPrice: price,
+                          onTap: () {
+                            context
+                                .push('/products/${product.id}')
+                                .then((_) => _loadProducts());
+                          },
+                          onEdit: () => _openEditProduct(product),
+                          onDeactivate: () => _confirmDeactivate(product),
+                          onActivate: () => _activateProduct(product),
+                        );
+                      },
                     ),
+                  ),
           ),
         ],
       ),
-      floatingActionButton:
-          _selectedStatus == 'active'
-              ? FloatingActionButton.extended(
-                onPressed: _openCreateProductSheet,
-                icon: const Icon(Icons.add),
-                label: const Text('Produk'),
-              )
-              : null,
+      floatingActionButton: _selectedStatus == 'active'
+          ? FloatingActionButton.extended(
+              onPressed: _openCreateProductSheet,
+              icon: const Icon(Icons.add),
+              label: const Text('Produk'),
+            )
+          : null,
     );
   }
 }

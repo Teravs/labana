@@ -97,20 +97,23 @@ void main() {
       );
     });
 
-    test('5. update same product name allowed, but duplicate other active rejected', () async {
-      final p1 = await productRepo.create('Es Teh');
-      final p2 = await productRepo.create('Es Jeruk');
+    test(
+      '5. update same product name allowed, but duplicate other active rejected',
+      () async {
+        final p1 = await productRepo.create('Es Teh');
+        final p2 = await productRepo.create('Es Jeruk');
 
-      // Update produk dengan namanya sendiri harus berhasil
-      final updatedSelf = await productRepo.update(p1.id!, name: 'Es Teh');
-      expect(updatedSelf.name, 'Es Teh');
+        // Update produk dengan namanya sendiri harus berhasil
+        final updatedSelf = await productRepo.update(p1.id!, name: 'Es Teh');
+        expect(updatedSelf.name, 'Es Teh');
 
-      // Update produk dengan nama produk aktif lain harus ditolak
-      expect(
-        () => productRepo.update(p2.id!, name: 'es teh'),
-        throwsA(isA<ValidationException>()),
-      );
-    });
+        // Update produk dengan nama produk aktif lain harus ditolak
+        expect(
+          () => productRepo.update(p2.id!, name: 'es teh'),
+          throwsA(isA<ValidationException>()),
+        );
+      },
+    );
 
     test('6. deactivate product', () async {
       final p = await productRepo.create('Es Kopi');
@@ -177,100 +180,111 @@ void main() {
       expect(bundle.productPrice.effectiveFrom, '2026-09-01');
     });
 
-    test('Atomic update: no recipe change does NOT create new recipe version', () async {
-      final teh = await ingredientRepo.create('Teh');
-      final initialBundle = await productRepo.createProductWithRecipeAndPrice(
-        name: 'Es Teh',
-        recipeItems: [
-          RecipeItem(
-            recipeVersionId: 0,
-            componentType: RecipeItem.typeIngredient,
-            ingredientId: teh.id,
-            quantity: 5,
-            unit: 'g',
-            createdAt: '2026-09-01T00:00:00Z',
-          ),
-        ],
-        sellingPrice: 3000,
-        effectiveDate: '2026-09-01',
-        hppTotal: 500,
-      );
+    test(
+      'Atomic update: no recipe change does NOT create new recipe version',
+      () async {
+        final teh = await ingredientRepo.create('Teh');
+        final initialBundle = await productRepo.createProductWithRecipeAndPrice(
+          name: 'Es Teh',
+          recipeItems: [
+            RecipeItem(
+              recipeVersionId: 0,
+              componentType: RecipeItem.typeIngredient,
+              ingredientId: teh.id,
+              quantity: 5,
+              unit: 'g',
+              createdAt: '2026-09-01T00:00:00Z',
+            ),
+          ],
+          sellingPrice: 3000,
+          effectiveDate: '2026-09-01',
+          hppTotal: 500,
+        );
 
-      // Update hanya nama produk dan resep sama persis
-      final updatedBundle = await productRepo.updateProductWithRecipeAndPrice(
-        productId: initialBundle.product.id!,
-        name: 'Es Teh Original',
-        recipeItems: [
-          RecipeItem(
-            recipeVersionId: 0,
-            componentType: RecipeItem.typeIngredient,
-            ingredientId: teh.id,
-            quantity: 5,
-            unit: 'g',
-            createdAt: '2026-09-01T00:00:00Z',
-          ),
-        ],
-        effectiveDate: '2026-09-05',
-      );
+        // Update hanya nama produk dan resep sama persis
+        final updatedBundle = await productRepo.updateProductWithRecipeAndPrice(
+          productId: initialBundle.product.id!,
+          name: 'Es Teh Original',
+          recipeItems: [
+            RecipeItem(
+              recipeVersionId: 0,
+              componentType: RecipeItem.typeIngredient,
+              ingredientId: teh.id,
+              quantity: 5,
+              unit: 'g',
+              createdAt: '2026-09-01T00:00:00Z',
+            ),
+          ],
+          effectiveDate: '2026-09-05',
+        );
 
-      expect(updatedBundle.product.name, 'Es Teh Original');
-      // Resep tidak berubah -> tetap versi 1
-      expect(updatedBundle.recipeVersion.versionNumber, 1);
-      final allVersions = await recipeVersionRepo.getByProductId(initialBundle.product.id!);
-      expect(allVersions.length, 1);
-    });
+        expect(updatedBundle.product.name, 'Es Teh Original');
+        // Resep tidak berubah -> tetap versi 1
+        expect(updatedBundle.recipeVersion.versionNumber, 1);
+        final allVersions = await recipeVersionRepo.getByProductId(
+          initialBundle.product.id!,
+        );
+        expect(allVersions.length, 1);
+      },
+    );
 
-    test('Atomic update: recipe change creates new recipe version (v2) and archives v1', () async {
-      final teh = await ingredientRepo.create('Teh');
-      final initialBundle = await productRepo.createProductWithRecipeAndPrice(
-        name: 'Es Teh',
-        recipeItems: [
-          RecipeItem(
-            recipeVersionId: 0,
-            componentType: RecipeItem.typeIngredient,
-            ingredientId: teh.id,
-            quantity: 5,
-            unit: 'g',
-            createdAt: '2026-09-01T00:00:00Z',
-          ),
-        ],
-        sellingPrice: 3000,
-        effectiveDate: '2026-09-01',
-        hppTotal: 500,
-      );
+    test(
+      'Atomic update: recipe change creates new recipe version (v2) and archives v1',
+      () async {
+        final teh = await ingredientRepo.create('Teh');
+        final initialBundle = await productRepo.createProductWithRecipeAndPrice(
+          name: 'Es Teh',
+          recipeItems: [
+            RecipeItem(
+              recipeVersionId: 0,
+              componentType: RecipeItem.typeIngredient,
+              ingredientId: teh.id,
+              quantity: 5,
+              unit: 'g',
+              createdAt: '2026-09-01T00:00:00Z',
+            ),
+          ],
+          sellingPrice: 3000,
+          effectiveDate: '2026-09-01',
+          hppTotal: 500,
+        );
 
-      // Update dengan komposisi resep baru (kuantitas diubah menjadi 7g)
-      final updatedBundle = await productRepo.updateProductWithRecipeAndPrice(
-        productId: initialBundle.product.id!,
-        name: 'Es Teh',
-        recipeItems: [
-          RecipeItem(
-            recipeVersionId: 0,
-            componentType: RecipeItem.typeIngredient,
-            ingredientId: teh.id,
-            quantity: 7,
-            unit: 'g',
-            createdAt: '2026-09-15T00:00:00Z',
-          ),
-        ],
-        sellingPrice: 3500,
-        effectiveDate: '2026-09-15',
-        hppTotal: 700,
-      );
+        // Update dengan komposisi resep baru (kuantitas diubah menjadi 7g)
+        final updatedBundle = await productRepo.updateProductWithRecipeAndPrice(
+          productId: initialBundle.product.id!,
+          name: 'Es Teh',
+          recipeItems: [
+            RecipeItem(
+              recipeVersionId: 0,
+              componentType: RecipeItem.typeIngredient,
+              ingredientId: teh.id,
+              quantity: 7,
+              unit: 'g',
+              createdAt: '2026-09-15T00:00:00Z',
+            ),
+          ],
+          sellingPrice: 3500,
+          effectiveDate: '2026-09-15',
+          hppTotal: 700,
+        );
 
-      expect(updatedBundle.recipeVersion.versionNumber, 2);
-      expect(updatedBundle.recipeVersion.isActive, true);
+        expect(updatedBundle.recipeVersion.versionNumber, 2);
+        expect(updatedBundle.recipeVersion.isActive, true);
 
-      // Cek bahwa versi 1 sekarang berstatus archived
-      final v1 = await recipeVersionRepo.getById(initialBundle.recipeVersion.id!);
-      expect(v1?.isArchived, true);
+        // Cek bahwa versi 1 sekarang berstatus archived
+        final v1 = await recipeVersionRepo.getById(
+          initialBundle.recipeVersion.id!,
+        );
+        expect(v1?.isArchived, true);
 
-      // Cek harga jual baru ditambahkan
-      final prices = await productPriceRepo.getByProductId(initialBundle.product.id!);
-      expect(prices.length, 2);
-      expect(prices[0].sellingPrice, 3500);
-      expect(prices[1].sellingPrice, 3000);
-    });
+        // Cek harga jual baru ditambahkan
+        final prices = await productPriceRepo.getByProductId(
+          initialBundle.product.id!,
+        );
+        expect(prices.length, 2);
+        expect(prices[0].sellingPrice, 3500);
+        expect(prices[1].sellingPrice, 3000);
+      },
+    );
   });
 }
-

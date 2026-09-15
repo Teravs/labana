@@ -27,7 +27,9 @@ class ProductPriceRepository {
       throw const ValidationException('Harga jual tidak boleh negatif.');
     }
     if (price.effectiveFrom.trim().isEmpty) {
-      throw const ValidationException('Tanggal efektif harga jual wajib diisi.');
+      throw const ValidationException(
+        'Tanggal efektif harga jual wajib diisi.',
+      );
     }
 
     final exec = executor ?? await _db;
@@ -78,7 +80,8 @@ class ProductPriceRepository {
   }) async {
     final exec = executor ?? await _db;
     final date =
-        effectiveDate ?? DateTime.now().toUtc().toIso8601String().substring(0, 10);
+        effectiveDate ??
+        DateTime.now().toUtc().toIso8601String().substring(0, 10);
 
     final results = await exec.query(
       TableNames.productPrices,
@@ -88,6 +91,28 @@ class ProductPriceRepository {
       limit: 1,
     );
 
+    if (results.isEmpty) return null;
+    return ProductPrice.fromMap(results.first);
+  }
+
+  /// Mengambil harga jual yang berlaku pada [calculationDate].
+  ///
+  /// Aturan: `product_prices.effective_from <= calculationDate`
+  /// Diurutkan berdasarkan `effective_from DESC, id DESC LIMIT 1`.
+  /// Mengembalikan `null` jika belum ada harga yang efektif pada tanggal tersebut.
+  Future<ProductPrice?> getEffectivePriceAt(
+    int productId, {
+    required String calculationDate,
+    DatabaseExecutor? executor,
+  }) async {
+    final exec = executor ?? await _db;
+    final results = await exec.query(
+      TableNames.productPrices,
+      where: 'product_id = ? AND effective_from <= ?',
+      whereArgs: [productId, calculationDate],
+      orderBy: 'effective_from DESC, id DESC',
+      limit: 1,
+    );
     if (results.isEmpty) return null;
     return ProductPrice.fromMap(results.first);
   }
@@ -110,4 +135,3 @@ class ProductPriceRepository {
     return ProductPrice.fromMap(results.first);
   }
 }
-

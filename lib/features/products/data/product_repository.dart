@@ -304,15 +304,14 @@ class ProductRepository {
       );
 
       // 4. Insert seluruh item komponen resep (dengan validasi sumber bahan aktif)
-      final preparedItems =
-          recipeItems
-              .map(
-                (item) => item.copyWith(
-                  recipeVersionId: createdVersion.id,
-                  createdAt: now,
-                ),
-              )
-              .toList();
+      final preparedItems = recipeItems
+          .map(
+            (item) => item.copyWith(
+              recipeVersionId: createdVersion.id,
+              createdAt: now,
+            ),
+          )
+          .toList();
 
       final createdItems = await _recipeItemRepo.createMany(
         preparedItems,
@@ -416,13 +415,12 @@ class ProductRepository {
         productId,
         executor: txn,
       );
-      final currentItems =
-          activeVersion != null
-              ? await _recipeItemRepo.getByRecipeVersionId(
-                activeVersion.id!,
-                executor: txn,
-              )
-              : <RecipeItem>[];
+      final currentItems = activeVersion != null
+          ? await _recipeItemRepo.getByRecipeVersionId(
+              activeVersion.id!,
+              executor: txn,
+            )
+          : <RecipeItem>[];
 
       // Tentukan apakah resep mengalami perubahan
       final isRecipeChanged =
@@ -462,15 +460,14 @@ class ProductRepository {
         );
 
         // Simpan item-item resep versi baru
-        final preparedItems =
-            recipeItems
-                .map(
-                  (item) => item.copyWith(
-                    recipeVersionId: finalVersion.id,
-                    createdAt: now,
-                  ),
-                )
-                .toList();
+        final preparedItems = recipeItems
+            .map(
+              (item) => item.copyWith(
+                recipeVersionId: finalVersion.id,
+                createdAt: now,
+              ),
+            )
+            .toList();
 
         finalItems = await _recipeItemRepo.createMany(
           preparedItems,
@@ -553,4 +550,3 @@ class ProductRepository {
     return false;
   }
 }
-

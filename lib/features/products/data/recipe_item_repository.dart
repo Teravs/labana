@@ -158,7 +158,8 @@ class RecipeItemRepository {
     DatabaseExecutor? executor,
   }) async {
     final exec = executor ?? await _db;
-    final results = await exec.rawQuery('''
+    final results = await exec.rawQuery(
+      '''
       SELECT 
         ri.*,
         i.name AS ingredient_name,
@@ -170,13 +171,18 @@ class RecipeItemRepository {
         ON ri.processed_ingredient_id = pi.id
       WHERE ri.recipe_version_id = ?
       ORDER BY ri.id ASC
-    ''', [recipeVersionId]);
+    ''',
+      [recipeVersionId],
+    );
 
     return results.map((m) => RecipeItem.fromMap(m)).toList();
   }
 
   /// Menyimpan satu item resep baru.
-  Future<RecipeItem> create(RecipeItem item, {DatabaseExecutor? executor}) async {
+  Future<RecipeItem> create(
+    RecipeItem item, {
+    DatabaseExecutor? executor,
+  }) async {
     validateItem(item);
     final exec = executor ?? await _db;
     await validateSourcesActive(item, exec);
@@ -231,4 +237,3 @@ class RecipeItemRepository {
     );
   }
 }
-

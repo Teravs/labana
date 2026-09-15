@@ -110,4 +110,3 @@ class RecipeVersion {
       status.hashCode ^
       createdAt.hashCode;
 }
-
