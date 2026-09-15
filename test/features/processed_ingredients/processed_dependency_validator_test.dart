@@ -268,30 +268,33 @@ void main() {
       );
     });
 
-    test('SQLite: getValidChildCandidates menyaring diri sendiri dan ancestor', () async {
-      final aId = await insertProcessed('Bahan A');
-      final bId = await insertProcessed('Bahan B');
-      final cId = await insertProcessed('Bahan C');
-      await insertProcessed('Bahan D');
+    test(
+      'SQLite: getValidChildCandidates menyaring diri sendiri dan ancestor',
+      () async {
+        final aId = await insertProcessed('Bahan A');
+        final bId = await insertProcessed('Bahan B');
+        final cId = await insertProcessed('Bahan C');
+        await insertProcessed('Bahan D');
 
-      // Relasi: A -> B -> C
-      await addProcessedComponent(parentId: aId, childId: bId);
-      await addProcessedComponent(parentId: bId, childId: cId);
+        // Relasi: A -> B -> C
+        await addProcessedComponent(parentId: aId, childId: bId);
+        await addProcessedComponent(parentId: bId, childId: cId);
 
-      // Kandidat untuk C:
-      // - Tidak boleh C (diri sendiri)
-      // - Tidak boleh A (ancestor)
-      // - Tidak boleh B (ancestor)
-      // - D boleh!
-      final candidatesForC = await validator.getValidChildCandidates(
-        currentProcessedId: cId,
-      );
+        // Kandidat untuk C:
+        // - Tidak boleh C (diri sendiri)
+        // - Tidak boleh A (ancestor)
+        // - Tidak boleh B (ancestor)
+        // - D boleh!
+        final candidatesForC = await validator.getValidChildCandidates(
+          currentProcessedId: cId,
+        );
 
-      final candidateNames = candidatesForC.map((c) => c.name).toList();
-      expect(candidateNames, contains('Bahan D'));
-      expect(candidateNames, isNot(contains('Bahan C')));
-      expect(candidateNames, isNot(contains('Bahan B')));
-      expect(candidateNames, isNot(contains('Bahan A')));
-    });
+        final candidateNames = candidatesForC.map((c) => c.name).toList();
+        expect(candidateNames, contains('Bahan D'));
+        expect(candidateNames, isNot(contains('Bahan C')));
+        expect(candidateNames, isNot(contains('Bahan B')));
+        expect(candidateNames, isNot(contains('Bahan A')));
+      },
+    );
   });
 }

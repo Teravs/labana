@@ -5,6 +5,8 @@ import '../features/home/presentation/screens/home_screen.dart';
 import '../features/ingredients/presentation/screens/ingredient_detail_screen.dart';
 import '../features/ingredients/presentation/screens/ingredients_screen.dart';
 import '../features/processed_ingredients/presentation/screens/processed_ingredient_detail_screen.dart';
+import '../features/products/presentation/screens/product_detail_screen.dart';
+import '../features/products/presentation/screens/products_screen.dart';
 import '../features/reports/presentation/screens/reports_screen.dart';
 import '../features/sales/presentation/screens/sales_screen.dart';
 import '../features/settings/presentation/screens/settings_screen.dart';
@@ -28,6 +30,7 @@ class AppRoutes {
   static const String processedIngredients = '/processed-ingredients';
   static const String processedIngredientDetail = '/processed-ingredients/:id';
   static const String products = '/products';
+  static const String productDetail = '/products/:id';
 }
 
 class AppRouter {
@@ -154,6 +157,25 @@ class AppRouter {
           final id = int.tryParse(state.pathParameters['id'] ?? '') ?? 0;
           return ProcessedIngredientDetailScreen(processedIngredientId: id);
         },
+      ),
+
+      // Route untuk Produk & Resep
+      GoRoute(
+        path: AppRoutes.products,
+        name: 'products',
+        builder: (BuildContext context, GoRouterState state) {
+          return const ProductsScreen();
+        },
+        routes: [
+          GoRoute(
+            path: ':id',
+            name: 'product-detail',
+            builder: (BuildContext context, GoRouterState state) {
+              final id = int.tryParse(state.pathParameters['id'] ?? '') ?? 0;
+              return ProductDetailScreen(productId: id);
+            },
+          ),
+        ],
       ),
     ],
   );

@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../../../routes/app_routes.dart';
 
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/widgets/app_empty_state.dart';
@@ -388,7 +391,16 @@ class _IngredientsScreenState extends State<IngredientsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Bahan')),
+      appBar: AppBar(
+        title: const Text('Bahan'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.menu_book_rounded),
+            tooltip: 'Produk & Resep',
+            onPressed: () => context.push(AppRoutes.products),
+          ),
+        ],
+      ),
       body: SafeArea(
         child: Column(
           children: [

@@ -71,11 +71,7 @@ class ProcessedDependencyValidator {
 
     for (final comp in processedComponents) {
       if (comp.childProcessedId != null) {
-        await canAddChild(
-          parentId,
-          comp.childProcessedId!,
-          executor: executor,
-        );
+        await canAddChild(parentId, comp.childProcessedId!, executor: executor);
       }
     }
   }
@@ -98,8 +94,9 @@ class ProcessedDependencyValidator {
       orderBy: 'name COLLATE NOCASE ASC',
     );
 
-    final allActive =
-        results.map((map) => ProcessedIngredient.fromMap(map)).toList();
+    final allActive = results
+        .map((map) => ProcessedIngredient.fromMap(map))
+        .toList();
 
     if (currentProcessedId == null) {
       return allActive;
@@ -145,7 +142,8 @@ class ProcessedDependencyValidator {
     final rows = await client.query(
       TableNames.processedComponents,
       columns: ['child_processed_id'],
-      where: 'processed_ingredient_id = ? AND component_type = ? AND child_processed_id IS NOT NULL',
+      where:
+          'processed_ingredient_id = ? AND component_type = ? AND child_processed_id IS NOT NULL',
       whereArgs: [startId, ProcessedComponent.typeProcessed],
     );
 
@@ -208,4 +206,3 @@ class ProcessedDependencyValidator {
     return true;
   }
 }
-

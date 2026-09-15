@@ -8,6 +8,7 @@ import 'package:labana/features/ingredients/data/ingredient_repository.dart';
 import 'package:labana/features/processed_ingredients/data/processed_ingredient_repository.dart';
 import 'package:labana/features/processed_ingredients/models/processed_component.dart';
 import 'package:labana/main.dart';
+import 'package:labana/routes/app_routes.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() {
@@ -28,6 +29,7 @@ void main() {
     );
     DatabaseHelper.instance.setTestDatabase(testDb);
     appThemeModeNotifier.value = ThemeMode.system;
+    AppRouter.router.go(AppRoutes.home);
   });
 
   tearDown(() async {
@@ -811,6 +813,237 @@ void main() {
       });
 
       debugPrint('[Test 13] SELESAI');
+    },
+  );
+
+  // ---------------------------------------------------------------------------
+  // Test 14: End-to-End Product + Recipe Flow
+  // ---------------------------------------------------------------------------
+  testWidgets(
+    'Test 14: End-to-End Product + Recipe Flow (Create, Live Preview, Selling Price, Detail, Deactivate, Reactivate)',
+    (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      debugPrint(
+        '[Test 14] Langkah 1: Setup master data (Bahan Mentah & Bahan Olahan)',
+      );
+      final ingRepo = IngredientRepository();
+      final priceRepo = IngredientPriceRepository();
+      final procRepo = ProcessedIngredientRepository();
+
+      await tester.runAsync(() async {
+        // Gula Pasir: 1 kg = Rp15.000 (Rp15/g)
+        final gula = await ingRepo.create('Gula Pasir');
+        await priceRepo.createPrice(
+          ingredientId: gula.id!,
+          purchaseQuantity: 1,
+          purchaseUnit: 'kg',
+          price: 15000,
+          effectiveFrom: '2026-01-01',
+          isDefault: true,
+        );
+
+        // Teh Melati: 100 g = Rp10.000 (Rp100/g)
+        final teh = await ingRepo.create('Teh Melati');
+        await priceRepo.createPrice(
+          ingredientId: teh.id!,
+          purchaseQuantity: 100,
+          purchaseUnit: 'g',
+          price: 10000,
+          effectiveFrom: '2026-01-01',
+          isDefault: true,
+        );
+
+        // Simple Syrup: 500g Gula (7500) + Air (1000) = Rp8.500 / 750 ml = Rp11,33/ml
+        await procRepo.create(
+          name: 'Simple Syrup',
+          resultQuantity: 750,
+          resultUnit: 'ml',
+          components: [
+            ProcessedComponent(
+              componentType: ProcessedComponent.typeIngredient,
+              ingredientId: gula.id!,
+              quantity: 500,
+              unit: 'g',
+            ),
+            const ProcessedComponent(
+              componentType: ProcessedComponent.typeOther,
+              otherCost: 1000,
+              label: 'Air',
+            ),
+          ],
+        );
+      });
+
+      debugPrint(
+        '[Test 14] Langkah 2: Buka aplikasi & navigasi via tombol + Produk / Resep di Home',
+      );
+      await tester.pumpWidget(const LabanaApp());
+      await settleAsync(tester);
+
+      expect(find.text('+ Produk / Resep'), findsOneWidget);
+      await tester.tap(find.text('+ Produk / Resep'));
+      await settleAsync(tester);
+
+      debugPrint('[Test 14] Langkah 3: Verifikasi halaman Produk & Resep');
+      expect(find.text('Produk & Resep'), findsOneWidget);
+      expect(find.text('Belum Ada Produk'), findsOneWidget);
+
+      debugPrint(
+        '[Test 14] Langkah 4: Buka form Tambah Produk & Resep via FAB',
+      );
+      await tester.tap(find.byType(FloatingActionButton));
+      await settleAsync(tester);
+
+      expect(find.text('Tambah Produk Baru'), findsOneWidget);
+
+      debugPrint('[Test 14] Langkah 5: Isi Nama Produk');
+      final nameField = find.ancestor(
+        of: find.text('Nama Produk'),
+        matching: find.byType(TextFormField),
+      );
+      await tester.enterText(nameField, 'Es Teh Manis');
+
+      debugPrint(
+        '[Test 14] Langkah 6: Atur komponen bahan mentah (Teh Melati 5g = Rp500)',
+      );
+      final ingDropdown = find.byType(DropdownButtonFormField<int>).first;
+      await tester.ensureVisible(ingDropdown);
+      await tester.tap(ingDropdown);
+      await settleAsync(tester);
+      await tester.tap(find.text('Teh Melati').last);
+      await settleAsync(tester);
+
+      final qtyFields = find.ancestor(
+        of: find.text('Jumlah Pemakaian'),
+        matching: find.byType(TextFormField),
+      );
+      await tester.enterText(qtyFields.first, '5');
+      await tester.pump();
+
+      debugPrint(
+        '[Test 14] Langkah 7: Tambah komponen Bahan Olahan (Simple Syrup 30 ml = Rp340)',
+      );
+      final addProcessedBtn = find.widgetWithText(
+        OutlinedButton,
+        'Bahan Olahan',
+      );
+      await tester.ensureVisible(addProcessedBtn);
+      await tester.tap(addProcessedBtn);
+      await settleAsync(tester);
+
+      final qtyFieldsAfterProc = find.ancestor(
+        of: find.text('Jumlah Pemakaian'),
+        matching: find.byType(TextFormField),
+      );
+      await tester.enterText(qtyFieldsAfterProc.last, '30');
+      await tester.pump();
+
+      debugPrint(
+        '[Test 14] Langkah 8: Tambah komponen Biaya Lainnya (Cup Rp500)',
+      );
+      final addOtherBtn = find.widgetWithText(OutlinedButton, 'Biaya Lainnya');
+      await tester.ensureVisible(addOtherBtn);
+      await tester.tap(addOtherBtn);
+      await settleAsync(tester);
+
+      final otherCostField = find.ancestor(
+        of: find.text('Nominal Biaya (Rp)'),
+        matching: find.byType(TextFormField),
+      );
+      await tester.ensureVisible(otherCostField);
+      await tester.enterText(otherCostField, '500');
+
+      final labelField = find.ancestor(
+        of: find.text('Keterangan (Opsional)'),
+        matching: find.byType(TextFormField),
+      );
+      await tester.enterText(labelField, 'Cup & Sedotan');
+      await tester.pump();
+
+      debugPrint(
+        '[Test 14] Langkah 9: Verifikasi live HPP preview (500 + 340 + 500 = Rp1.340)',
+      );
+      expect(find.text('Estimasi HPP Resep'), findsOneWidget);
+      expect(find.text('Rp1.340'), findsOneWidget);
+
+      debugPrint(
+        '[Test 14] Langkah 10: Isi Harga Jual Rp5.000 & verifikasi preview laba',
+      );
+      final priceField = find.ancestor(
+        of: find.text('Harga Jual (Rp)'),
+        matching: find.byType(TextFormField),
+      );
+      await tester.ensureVisible(priceField);
+      await tester.enterText(priceField, '5000');
+      await tester.pump();
+
+      expect(find.text('Estimasi Laba per Porsi'), findsOneWidget);
+      expect(find.text('Rp3.660'), findsOneWidget);
+
+      debugPrint('[Test 14] Langkah 11: Simpan produk');
+      final submitBtn = find.widgetWithText(FilledButton, 'Simpan Produk');
+      await tester.ensureVisible(submitBtn);
+      await tester.tap(submitBtn);
+      await settleAsync(tester);
+      await settleAsync(tester);
+
+      debugPrint(
+        '[Test 14] Langkah 12: Verifikasi produk di daftar (ProductsScreen)',
+      );
+      expect(find.text('Es Teh Manis'), findsOneWidget);
+      expect(find.text('v1'), findsOneWidget);
+      expect(find.text('Rp5.000'), findsOneWidget);
+      expect(find.text('• HPP: Rp1.340'), findsOneWidget);
+      expect(find.text('Laba: Rp3.660'), findsOneWidget);
+
+      debugPrint('[Test 14] Langkah 13: Buka detail produk');
+      await tester.tap(find.text('Es Teh Manis'));
+      await settleAsync(tester);
+
+      debugPrint('[Test 14] Langkah 14: Verifikasi isi ProductDetailScreen');
+      expect(find.text('Produk Aktif'), findsOneWidget);
+      expect(find.text('Resep v1'), findsWidgets);
+      expect(find.text('Rp5.000'), findsWidgets);
+      expect(find.text('Rp1.340'), findsWidgets);
+      expect(find.text('Rp3.660'), findsWidgets);
+
+      debugPrint(
+        '[Test 14] Langkah 15: Soft deactivate via PopupMenu di detail screen',
+      );
+      final popupBtn = find.byType(PopupMenuButton<String>);
+      await tester.tap(popupBtn);
+      await settleAsync(tester);
+
+      await tester.tap(find.text('Nonaktifkan'));
+      await settleAsync(tester);
+
+      final confirmDeactBtn = find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.text('Nonaktifkan'),
+      );
+      await tester.tap(confirmDeactBtn);
+      await settleAsync(tester);
+
+      expect(find.text('Produk Nonaktif'), findsOneWidget);
+
+      debugPrint(
+        '[Test 14] Langkah 16: Reactivate produk via tombol Aktifkan di AppBar',
+      );
+      await tester.tap(find.widgetWithText(TextButton, 'Aktifkan'));
+      await settleAsync(tester);
+
+      expect(find.text('Produk Aktif'), findsOneWidget);
+
+      debugPrint('[Test 14] Langkah 17: Kembali ke halaman ProductsScreen');
+      await tester.tap(find.byType(BackButton));
+      await settleAsync(tester);
+
+      expect(find.text('Es Teh Manis'), findsOneWidget);
+      debugPrint('[Test 14] SELESAI');
     },
   );
 }
