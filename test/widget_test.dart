@@ -3,6 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:labana/core/constants/app_constants.dart';
 import 'package:labana/core/database/database_helper.dart';
 import 'package:labana/core/theme/theme_controller.dart';
+import 'package:labana/features/ingredients/data/ingredient_price_repository.dart';
+import 'package:labana/features/ingredients/data/ingredient_repository.dart';
 import 'package:labana/main.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
@@ -410,6 +412,198 @@ void main() {
       // Verifikasi di card bahan mentah terdapat ringkasan harga
       expect(find.text('Sedotan Plastik'), findsOneWidget);
       expect(find.text('Rp10.000 / 1 pack (50 pcs)'), findsOneWidget);
+    },
+  );
+
+  // ---------------------------------------------------------------------------
+  // Test 11: Tab Bahan Olahan — Empty State & Sub-filter Status
+  // ---------------------------------------------------------------------------
+  testWidgets(
+    'Test 11: Tab Bahan Olahan menampilkan empty state dan toggle filter status',
+    (WidgetTester tester) async {
+      await tester.pumpWidget(const LabanaApp());
+      await tester.pumpAndSettle();
+
+      // Pindah ke tab Bahan
+      await tester.tap(
+        find.descendant(
+          of: find.byType(NavigationBar),
+          matching: find.text('Bahan'),
+        ),
+      );
+      await settleAsync(tester);
+
+      // Pindah ke sub-tab 'Bahan Olahan'
+      await tester.tap(find.text('Bahan Olahan'));
+      await settleAsync(tester);
+
+      // Verifikasi empty state Bahan Olahan
+      expect(find.text('Belum ada bahan olahan'), findsOneWidget);
+      expect(
+        find.text(
+          'Tambahkan bahan olahan seperti sirup, racikan susu, atau saus yang dibuat sendiri.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Tambah Bahan Olahan'), findsWidgets);
+
+      // Ganti filter ke Nonaktif
+      await tester.tap(find.text('Nonaktif'));
+      await settleAsync(tester);
+
+      expect(find.text('Tidak ada bahan olahan nonaktif'), findsOneWidget);
+
+      // Kembali ke filter Aktif
+      await tester.tap(find.text('Aktif'));
+      await settleAsync(tester);
+      expect(find.text('Belum ada bahan olahan'), findsOneWidget);
+    },
+  );
+
+  // ---------------------------------------------------------------------------
+  // Test 12: Bahan Olahan CRUD Flow — Tambah, Komponen, Kalkulasi, Detail, Nonaktif
+  // ---------------------------------------------------------------------------
+  testWidgets(
+    'Test 12: Bahan Olahan CRUD Flow dengan live preview modal dan detail resep',
+    (WidgetTester tester) async {
+      debugPrint('[Test 12] Langkah 1: Setup data awal');
+      await tester.runAsync(() async {
+        final ingRepo = IngredientRepository();
+        final priceRepo = IngredientPriceRepository();
+        final gula = await ingRepo.create('Gula Pasir');
+        await priceRepo.createPrice(
+          ingredientId: gula.id!,
+          purchaseQuantity: 1,
+          purchaseUnit: 'kg',
+          price: 15000,
+          effectiveFrom: '2026-01-01',
+          isDefault: true,
+        );
+      });
+
+      debugPrint('[Test 12] Langkah 2: Pump widget LabanaApp');
+      await tester.pumpWidget(const LabanaApp());
+      await tester.pumpAndSettle();
+
+      debugPrint('[Test 12] Langkah 3: Navigasi ke tab Bahan -> Bahan Olahan');
+      await tester.tap(
+        find.descendant(
+          of: find.byType(NavigationBar),
+          matching: find.text('Bahan'),
+        ),
+      );
+      await settleAsync(tester);
+
+      await tester.tap(find.text('Bahan Olahan'));
+      await settleAsync(tester);
+
+      debugPrint('[Test 12] Langkah 4: Buka modal Tambah Bahan Olahan');
+      await tester.tap(find.text('Tambah Bahan Olahan').first);
+      await settleAsync(tester);
+
+      debugPrint('[Test 12] Langkah 5: Mengisi nama dan hasil jadi');
+      final nameField = find.ancestor(
+        of: find.text('Nama bahan olahan'),
+        matching: find.byType(TextFormField),
+      );
+      await tester.enterText(nameField, 'Simple Syrup');
+
+      final resultField = find.ancestor(
+        of: find.text('Jumlah hasil jadi'),
+        matching: find.byType(TextFormField),
+      );
+      await tester.enterText(resultField, '750');
+
+      debugPrint('[Test 12] Langkah 6: Mengisi jumlah komponen 1 (Gula Pasir)');
+      final qtyField = find.ancestor(
+        of: find.text('Jumlah'),
+        matching: find.byType(TextFormField),
+      );
+      await tester.enterText(qtyField, '500');
+      await tester.pump();
+
+      debugPrint('[Test 12] Langkah 7: Menambah komponen 2 (Biaya Lainnya)');
+      await tester.ensureVisible(find.text('Biaya Lainnya'));
+      await tester.tap(find.text('Biaya Lainnya'));
+      await tester.pumpAndSettle();
+
+      debugPrint('[Test 12] Langkah 8: Mengisi nominal biaya lainnya');
+      final otherCostField = find.ancestor(
+        of: find.text('Nominal Biaya (Rp)'),
+        matching: find.byType(TextFormField),
+      );
+      await tester.ensureVisible(otherCostField);
+      await tester.enterText(otherCostField, '1000');
+      await tester.pump();
+
+      debugPrint('[Test 12] Langkah 9: Verifikasi live preview modal');
+      expect(find.text('Estimasi Modal Olahan'), findsOneWidget);
+      expect(find.text('Rp8.500'), findsOneWidget);
+      expect(find.text('Rp11,33/ml'), findsOneWidget);
+
+      debugPrint('[Test 12] Langkah 10: Simpan form');
+      await tester.ensureVisible(find.text('Simpan Bahan Olahan'));
+      await tester.tap(find.text('Simpan Bahan Olahan'));
+      await settleAsync(tester);
+      await settleAsync(tester);
+
+      debugPrint('[Test 12] Langkah 11: Verifikasi card di daftar');
+      expect(find.text('Simple Syrup'), findsOneWidget);
+      expect(find.text('Hasil: 750 ml • 2 komponen'), findsOneWidget);
+      expect(find.text('Rp8.500 (Rp11,33/ml)'), findsOneWidget);
+
+      debugPrint('[Test 12] Langkah 12: Buka detail bahan olahan');
+      await tester.tap(find.text('Simple Syrup'));
+      await settleAsync(tester);
+
+      debugPrint('[Test 12] Langkah 13: Verifikasi isi detail');
+      expect(find.text('Hasil Jadi: 750 ml'), findsOneWidget);
+      expect(find.text('Ringkasan Modal Olahan'), findsOneWidget);
+      expect(find.text('Total Modal Resep:'), findsOneWidget);
+      expect(find.text('Rp8.500'), findsWidgets);
+      expect(find.text('Modal per Satuan Hasil:'), findsOneWidget);
+      expect(find.text('Rp11,33/ml'), findsWidgets);
+
+      expect(find.text('Komposisi Komponen'), findsOneWidget);
+      expect(find.text('Gula Pasir'), findsOneWidget);
+      expect(find.text('Penggunaan: 500 g'), findsOneWidget);
+      expect(find.text('Rp7.500'), findsOneWidget);
+      expect(find.text('Biaya Lainnya / Pelengkap'), findsOneWidget);
+      expect(find.text('Rp1.000'), findsOneWidget);
+
+      debugPrint('[Test 12] Langkah 14: Nonaktifkan');
+      await tester.tap(find.byIcon(Icons.more_vert_rounded));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Nonaktifkan'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Nonaktifkan bahan olahan?'), findsOneWidget);
+      await tester.tap(find.widgetWithText(FilledButton, 'Nonaktifkan'));
+      await settleAsync(tester);
+
+      debugPrint('[Test 12] Langkah 15: Kembali ke daftar');
+      await tester.tap(find.byType(BackButton));
+      await settleAsync(tester);
+
+      expect(find.text('Belum ada bahan olahan'), findsOneWidget);
+
+      debugPrint('[Test 12] Langkah 16: Tab Nonaktif & reaktivasi');
+      await tester.tap(find.text('Nonaktif'));
+      await settleAsync(tester);
+
+      expect(find.text('Simple Syrup'), findsOneWidget);
+      expect(find.text('Aktifkan Kembali'), findsOneWidget);
+
+      await tester.tap(find.text('Aktifkan Kembali'));
+      await settleAsync(tester);
+
+      expect(find.text('Tidak ada bahan olahan nonaktif'), findsOneWidget);
+
+      await tester.tap(find.text('Aktif'));
+      await settleAsync(tester);
+      expect(find.text('Simple Syrup'), findsOneWidget);
+      debugPrint('[Test 12] SELESAI');
     },
   );
 }

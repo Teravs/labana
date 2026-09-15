@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../features/home/presentation/screens/home_screen.dart';
 import '../features/ingredients/presentation/screens/ingredient_detail_screen.dart';
 import '../features/ingredients/presentation/screens/ingredients_screen.dart';
+import '../features/processed_ingredients/presentation/screens/processed_ingredient_detail_screen.dart';
 import '../features/reports/presentation/screens/reports_screen.dart';
 import '../features/sales/presentation/screens/sales_screen.dart';
 import '../features/settings/presentation/screens/settings_screen.dart';
@@ -23,8 +24,9 @@ class AppRoutes {
   static const String reports = '/reports';
   static const String settings = '/settings';
 
-  // Future feature routes
+  // Processed ingredients & products
   static const String processedIngredients = '/processed-ingredients';
+  static const String processedIngredientDetail = '/processed-ingredients/:id';
   static const String products = '/products';
 }
 
@@ -79,6 +81,17 @@ class AppRouter {
                 },
                 routes: [
                   GoRoute(
+                    path: 'processed/:id',
+                    name: 'processed-ingredient-detail',
+                    builder: (BuildContext context, GoRouterState state) {
+                      final id =
+                          int.tryParse(state.pathParameters['id'] ?? '') ?? 0;
+                      return ProcessedIngredientDetailScreen(
+                        processedIngredientId: id,
+                      );
+                    },
+                  ),
+                  GoRoute(
                     path: ':id',
                     name: 'ingredient-detail',
                     builder: (BuildContext context, GoRouterState state) {
@@ -131,6 +144,16 @@ class AppRouter {
             ],
           ),
         ],
+      ),
+
+      // Direct route fallback untuk /processed-ingredients/:id
+      GoRoute(
+        path: '/processed-ingredients/:id',
+        name: 'processed-ingredient-detail-direct',
+        builder: (BuildContext context, GoRouterState state) {
+          final id = int.tryParse(state.pathParameters['id'] ?? '') ?? 0;
+          return ProcessedIngredientDetailScreen(processedIngredientId: id);
+        },
       ),
     ],
   );
