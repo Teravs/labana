@@ -18,7 +18,7 @@ class IngredientRepository {
   final DatabaseHelper _dbHelper;
 
   IngredientRepository({DatabaseHelper? dbHelper})
-      : _dbHelper = dbHelper ?? DatabaseHelper.instance;
+    : _dbHelper = dbHelper ?? DatabaseHelper.instance;
 
   Future<Database> get _db => _dbHelper.database;
 
@@ -119,18 +119,12 @@ class IngredientRepository {
     final now = DateTime.now().toUtc().toIso8601String();
     await db.update(
       TableNames.ingredients,
-      {
-        'name': trimmedName,
-        'updated_at': now,
-      },
+      {'name': trimmedName, 'updated_at': now},
       where: 'id = ?',
       whereArgs: [id],
     );
 
-    return current.copyWith(
-      name: trimmedName,
-      updatedAt: now,
-    );
+    return current.copyWith(name: trimmedName, updatedAt: now);
   }
 
   /// Menonaktifkan bahan (soft deactivation: status = 'inactive').
@@ -140,10 +134,7 @@ class IngredientRepository {
 
     await db.update(
       TableNames.ingredients,
-      {
-        'status': 'inactive',
-        'updated_at': now,
-      },
+      {'status': 'inactive', 'updated_at': now},
       where: 'id = ?',
       whereArgs: [id],
     );
@@ -175,13 +166,9 @@ class IngredientRepository {
     final now = DateTime.now().toUtc().toIso8601String();
     await db.update(
       TableNames.ingredients,
-      {
-        'status': 'active',
-        'updated_at': now,
-      },
+      {'status': 'active', 'updated_at': now},
       where: 'id = ?',
       whereArgs: [id],
     );
   }
 }
-

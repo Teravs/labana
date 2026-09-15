@@ -1,16 +1,21 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/widgets/app_empty_state.dart';
+import '../../data/ingredient_price_repository.dart';
 import '../../data/ingredient_repository.dart';
 import '../../models/ingredient.dart';
+import '../../models/ingredient_price.dart';
 import '../widgets/ingredient_card.dart';
 import '../widgets/ingredient_form_sheet.dart';
+import 'ingredient_detail_screen.dart';
 
 /// Halaman utama pengelolaan Bahan dengan tab Bahan Mentah dan Bahan Olahan.
 class IngredientsScreen extends StatefulWidget {
   final IngredientRepository? repository;
+  final IngredientPriceRepository? priceRepository;
 
-  const IngredientsScreen({super.key, this.repository});
+  const IngredientsScreen({super.key, this.repository, this.priceRepository});
 
   @override
   State<IngredientsScreen> createState() => _IngredientsScreenState();
@@ -18,17 +23,20 @@ class IngredientsScreen extends StatefulWidget {
 
 class _IngredientsScreenState extends State<IngredientsScreen> {
   late final IngredientRepository _repository;
+  late final IngredientPriceRepository _priceRepo;
 
   int _selectedMainTab = 0; // 0: Bahan Mentah, 1: Bahan Olahan
   String _selectedStatus = 'active'; // 'active' atau 'inactive'
 
   List<Ingredient> _ingredients = [];
+  Map<int, IngredientPrice> _defaultPrices = {};
   bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
     _repository = widget.repository ?? IngredientRepository();
+    _priceRepo = widget.priceRepository ?? IngredientPriceRepository();
     _loadIngredients();
   }
 
@@ -36,9 +44,15 @@ class _IngredientsScreenState extends State<IngredientsScreen> {
     setState(() => _isLoading = true);
     try {
       final items = await _repository.getAll(status: _selectedStatus);
+      final priceMap = <int, IngredientPrice>{};
+      if (items.isNotEmpty) {
+        priceMap.addAll(await _priceRepo.getAllDefaultPrices());
+      }
+
       if (mounted) {
         setState(() {
           _ingredients = items;
+          _defaultPrices = priceMap;
           _isLoading = false;
         });
       }
@@ -132,6 +146,19 @@ class _IngredientsScreenState extends State<IngredientsScreen> {
     } catch (e) {
       _showFeedback(e.toString(), isError: true);
     }
+  }
+
+  Future<void> _openIngredientDetail(Ingredient ingredient) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => IngredientDetailScreen(
+          ingredientId: ingredient.id!,
+          ingredientRepository: _repository,
+          priceRepository: _priceRepo,
+        ),
+      ),
+    );
+    await _loadIngredients();
   }
 
   @override
@@ -246,8 +273,17 @@ class _IngredientsScreenState extends State<IngredientsScreen> {
                   separatorBuilder: (_, _) => const SizedBox(height: 8),
                   itemBuilder: (context, index) {
                     final item = _ingredients[index];
+                    final defaultPrice = _defaultPrices[item.id];
+                    String? priceSummary;
+                    if (defaultPrice != null) {
+                      priceSummary =
+                          '${CurrencyFormatter.formatRupiah(defaultPrice.price)} / ${defaultPrice.formattedPurchaseFormat}';
+                    }
+
                     return IngredientCard(
                       ingredient: item,
+                      priceSummary: priceSummary,
+                      onTap: () => _openIngredientDetail(item),
                       onEdit: () => _showEditForm(item),
                       onDeactivate: () => _confirmDeactivate(item),
                       onActivate: () => _activateIngredient(item),

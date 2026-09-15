@@ -33,16 +33,14 @@ void main() {
 
   /// Helper untuk menunggu operasi asynchronous SQLite dan animasi widget selesai.
   Future<void> settleAsync(WidgetTester tester) async {
-    await tester.pump();
-    await tester.runAsync(
-      () => Future.delayed(const Duration(milliseconds: 100)),
-    );
-    await tester.pump();
+    for (int i = 0; i < 5; i++) {
+      await tester.pump();
+      await tester.runAsync(
+        () => Future.delayed(const Duration(milliseconds: 100)),
+      );
+      await tester.pump();
+    }
     await tester.pumpAndSettle();
-    await tester.runAsync(
-      () => Future.delayed(const Duration(milliseconds: 100)),
-    );
-    await tester.pump();
   }
 
   // ---------------------------------------------------------------------------
@@ -300,4 +298,118 @@ void main() {
     await tester.pumpAndSettle();
     expect(appThemeModeNotifier.value, ThemeMode.system);
   });
+
+  // ---------------------------------------------------------------------------
+  // Test 9: Navigasi ke Detail Bahan Mentah dan Tampilan Empty State Harga
+  // ---------------------------------------------------------------------------
+  testWidgets(
+    'Test 9: Navigasi ke Detail Bahan Mentah menampilkan empty state harga',
+    (WidgetTester tester) async {
+      await tester.pumpWidget(const LabanaApp());
+      await tester.pumpAndSettle();
+
+      // Pindah ke tab Bahan
+      await tester.tap(
+        find.descendant(
+          of: find.byType(NavigationBar),
+          matching: find.text('Bahan'),
+        ),
+      );
+      await settleAsync(tester);
+
+      // Tambah Bahan Mentah 'Kopi Bubuk'
+      await tester.tap(find.text('Tambah Bahan').first);
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextFormField), 'Kopi Bubuk');
+      await tester.tap(find.text('Simpan'));
+      await settleAsync(tester);
+
+      expect(find.text('Kopi Bubuk'), findsOneWidget);
+
+      // Tap card bahan untuk membuka detail
+      await tester.tap(find.text('Kopi Bubuk'));
+      await settleAsync(tester);
+
+      expect(find.text('Harga Saat Ini'), findsOneWidget);
+      expect(find.text('Belum ada harga'), findsOneWidget);
+      expect(find.text('Tambah Harga'), findsWidgets);
+    },
+  );
+
+  // ---------------------------------------------------------------------------
+  // Test 10: Form Tambah Harga, Satuan Pack & Riwayat Harga
+  // ---------------------------------------------------------------------------
+  testWidgets(
+    'Test 10: Form Tambah Harga, conditional Isi per Pack, dan riwayat harga',
+    (WidgetTester tester) async {
+      await tester.pumpWidget(const LabanaApp());
+      await tester.pumpAndSettle();
+
+      // Pindah ke tab Bahan
+      await tester.tap(
+        find.descendant(
+          of: find.byType(NavigationBar),
+          matching: find.text('Bahan'),
+        ),
+      );
+      await settleAsync(tester);
+
+      // Tambah Bahan 'Sedotan Plastik'
+      await tester.tap(find.text('Tambah Bahan').first);
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextFormField), 'Sedotan Plastik');
+      await tester.tap(find.text('Simpan'));
+      await settleAsync(tester);
+
+      // Buka detail Sedotan Plastik
+      await tester.tap(find.text('Sedotan Plastik'));
+      await settleAsync(tester);
+
+      // Buka form tambah harga
+      await tester.tap(find.text('Tambah Harga').first);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Tambah Harga Pembelian'), findsOneWidget);
+      expect(find.text('Isi per Pack'), findsNothing);
+
+      // Pilih unit Pack dari dropdown
+      await tester.tap(find.text('Kilogram (kg)'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Pack').last);
+      await tester.pumpAndSettle();
+
+      // Field Isi per Pack sekarang muncul
+      expect(find.text('Isi per Pack'), findsOneWidget);
+
+      // Isi data form: 1 pack, isi 50 pcs, harga 10000
+      final formFields = find.byType(TextFormField);
+      await tester.enterText(formFields.at(0), '1');
+      await tester.enterText(formFields.at(1), '50');
+      await tester.enterText(formFields.at(2), '10000');
+      await tester.pump();
+
+      // Simpan harga
+      await tester.ensureVisible(find.text('Simpan'));
+      await tester.tap(find.text('Simpan'));
+      await settleAsync(tester);
+
+      // Verifikasi harga tersimpan di halaman detail
+      expect(find.text('1 pack (50 pcs)'), findsWidgets);
+      expect(find.text('Rp10.000'), findsWidgets);
+      expect(find.text('Rp200/pcs'), findsWidgets);
+      expect(find.text('Default'), findsWidgets);
+      expect(find.text('Riwayat Harga'), findsOneWidget);
+
+      // Kembali ke halaman daftar bahan
+      await tester.tap(find.byType(BackButton));
+      await settleAsync(tester);
+
+      // Verifikasi di card bahan mentah terdapat ringkasan harga
+      expect(find.text('Sedotan Plastik'), findsOneWidget);
+      expect(find.text('Rp10.000 / 1 pack (50 pcs)'), findsOneWidget);
+    },
+  );
 }

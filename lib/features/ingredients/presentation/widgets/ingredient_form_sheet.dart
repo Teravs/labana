@@ -217,4 +217,3 @@ class _IngredientFormSheetState extends State<IngredientFormSheet> {
     );
   }
 }
-

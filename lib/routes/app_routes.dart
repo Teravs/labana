@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/home/presentation/screens/home_screen.dart';
+import '../features/ingredients/presentation/screens/ingredient_detail_screen.dart';
 import '../features/ingredients/presentation/screens/ingredients_screen.dart';
 import '../features/reports/presentation/screens/reports_screen.dart';
 import '../features/sales/presentation/screens/sales_screen.dart';
@@ -17,6 +18,7 @@ class AppRoutes {
   // 5 Main Navigation Routes
   static const String home = '/home';
   static const String ingredients = '/ingredients';
+  static const String ingredientDetail = '/ingredients/:id';
   static const String sales = '/sales';
   static const String reports = '/reports';
   static const String settings = '/settings';
@@ -75,6 +77,17 @@ class AppRouter {
                 builder: (BuildContext context, GoRouterState state) {
                   return const IngredientsScreen();
                 },
+                routes: [
+                  GoRoute(
+                    path: ':id',
+                    name: 'ingredient-detail',
+                    builder: (BuildContext context, GoRouterState state) {
+                      final id =
+                          int.tryParse(state.pathParameters['id'] ?? '') ?? 0;
+                      return IngredientDetailScreen(ingredientId: id);
+                    },
+                  ),
+                ],
               ),
             ],
           ),

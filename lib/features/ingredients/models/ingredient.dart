@@ -72,4 +72,3 @@ class Ingredient {
   @override
   int get hashCode => Object.hash(id, name, status);
 }
-

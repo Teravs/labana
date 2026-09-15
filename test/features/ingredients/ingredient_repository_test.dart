@@ -30,49 +30,58 @@ void main() {
   });
 
   group('IngredientRepository CRUD Tests', () {
-    test('Create: Menambahkan bahan mentah baru dan tersimpan di database',
-        () async {
-      final ingredient = await repository.create('Gula Pasir');
+    test(
+      'Create: Menambahkan bahan mentah baru dan tersimpan di database',
+      () async {
+        final ingredient = await repository.create('Gula Pasir');
 
-      expect(ingredient.id, isNotNull);
-      expect(ingredient.name, 'Gula Pasir');
-      expect(ingredient.status, 'active');
+        expect(ingredient.id, isNotNull);
+        expect(ingredient.name, 'Gula Pasir');
+        expect(ingredient.status, 'active');
 
-      final saved = await repository.getById(ingredient.id!);
-      expect(saved, isNotNull);
-      expect(saved!.name, 'Gula Pasir');
-      expect(saved.status, 'active');
-    });
+        final saved = await repository.getById(ingredient.id!);
+        expect(saved, isNotNull);
+        expect(saved!.name, 'Gula Pasir');
+        expect(saved.status, 'active');
+      },
+    );
 
-    test('Read: getAll(status: active) hanya mengembalikan bahan aktif',
-        () async {
-      final item1 = await repository.create('Gula Pasir');
-      final item2 = await repository.create('Teh Celup');
-      final item3 = await repository.create('Susu Kental Manis');
+    test(
+      'Read: getAll(status: active) hanya mengembalikan bahan aktif',
+      () async {
+        final item1 = await repository.create('Gula Pasir');
+        final item2 = await repository.create('Teh Celup');
+        final item3 = await repository.create('Susu Kental Manis');
 
-      // Nonaktifkan 1 item
-      await repository.deactivate(item2.id!);
+        // Nonaktifkan 1 item
+        await repository.deactivate(item2.id!);
 
-      final activeList = await repository.getAll(status: 'active');
-      expect(activeList.length, 2);
-      expect(activeList.map((i) => i.id), containsAll([item1.id, item3.id]));
-      expect(activeList.map((i) => i.id), isNot(contains(item2.id)));
+        final activeList = await repository.getAll(status: 'active');
+        expect(activeList.length, 2);
+        expect(activeList.map((i) => i.id), containsAll([item1.id, item3.id]));
+        expect(activeList.map((i) => i.id), isNot(contains(item2.id)));
 
-      final inactiveList = await repository.getAll(status: 'inactive');
-      expect(inactiveList.length, 1);
-      expect(inactiveList.first.id, item2.id);
-    });
+        final inactiveList = await repository.getAll(status: 'inactive');
+        expect(inactiveList.length, 1);
+        expect(inactiveList.first.id, item2.id);
+      },
+    );
 
-    test('Update: Mengubah nama bahan mentah berhasil memperbarui nama',
-        () async {
-      final created = await repository.create('Gula');
+    test(
+      'Update: Mengubah nama bahan mentah berhasil memperbarui nama',
+      () async {
+        final created = await repository.create('Gula');
 
-      final updated = await repository.update(created.id!, 'Gula Pasir Premium');
-      expect(updated.name, 'Gula Pasir Premium');
+        final updated = await repository.update(
+          created.id!,
+          'Gula Pasir Premium',
+        );
+        expect(updated.name, 'Gula Pasir Premium');
 
-      final fetched = await repository.getById(created.id!);
-      expect(fetched!.name, 'Gula Pasir Premium');
-    });
+        final fetched = await repository.getById(created.id!);
+        expect(fetched!.name, 'Gula Pasir Premium');
+      },
+    );
 
     test('Deactivate: Mengubah status bahan menjadi inactive', () async {
       final created = await repository.create('Kopi Arabika');
@@ -86,21 +95,23 @@ void main() {
       expect(activeList.any((i) => i.id == created.id), isFalse);
     });
 
-    test('Activate: Mengaktifkan kembali bahan inactive menjadi active',
-        () async {
-      final created = await repository.create('Sirup Vanila');
-      await repository.deactivate(created.id!);
+    test(
+      'Activate: Mengaktifkan kembali bahan inactive menjadi active',
+      () async {
+        final created = await repository.create('Sirup Vanila');
+        await repository.deactivate(created.id!);
 
-      expect((await repository.getById(created.id!))!.status, 'inactive');
+        expect((await repository.getById(created.id!))!.status, 'inactive');
 
-      await repository.activate(created.id!);
+        await repository.activate(created.id!);
 
-      final fetched = await repository.getById(created.id!);
-      expect(fetched!.status, 'active');
+        final fetched = await repository.getById(created.id!);
+        expect(fetched!.status, 'active');
 
-      final activeList = await repository.getAll(status: 'active');
-      expect(activeList.any((i) => i.id == created.id), isTrue);
-    });
+        final activeList = await repository.getAll(status: 'active');
+        expect(activeList.any((i) => i.id == created.id), isTrue);
+      },
+    );
   });
 
   group('IngredientRepository Validation Tests', () {
@@ -176,46 +187,50 @@ void main() {
       );
     });
 
-    test('Update ke nama yang sudah dipakai bahan aktif lain ditolak', () async {
-      final item1 = await repository.create('Gula');
-      final item2 = await repository.create('Garam');
+    test(
+      'Update ke nama yang sudah dipakai bahan aktif lain ditolak',
+      () async {
+        final item1 = await repository.create('Gula');
+        final item2 = await repository.create('Garam');
 
-      expect(
-        () => repository.update(item2.id!, 'gula'),
-        throwsA(
-          isA<ValidationException>().having(
-            (e) => e.message,
-            'message',
-            'Bahan dengan nama tersebut sudah ada.',
+        expect(
+          () => repository.update(item2.id!, 'gula'),
+          throwsA(
+            isA<ValidationException>().having(
+              (e) => e.message,
+              'message',
+              'Bahan dengan nama tersebut sudah ada.',
+            ),
           ),
-        ),
-      );
+        );
 
-      // Tapi mengubah diri sendiri dengan casing sama/berbeda diperbolehkan
-      final updatedSelf = await repository.update(item1.id!, 'Gula Pasir');
-      expect(updatedSelf.name, 'Gula Pasir');
-    });
+        // Tapi mengubah diri sendiri dengan casing sama/berbeda diperbolehkan
+        final updatedSelf = await repository.update(item1.id!, 'Gula Pasir');
+        expect(updatedSelf.name, 'Gula Pasir');
+      },
+    );
 
-    test('Aktivasi ditolak jika nama sudah digunakan oleh bahan aktif lain',
-        () async {
-      final item1 = await repository.create('Susu');
-      await repository.deactivate(item1.id!);
+    test(
+      'Aktivasi ditolak jika nama sudah digunakan oleh bahan aktif lain',
+      () async {
+        final item1 = await repository.create('Susu');
+        await repository.deactivate(item1.id!);
 
-      // Buat bahan aktif baru bernama Susu
-      await repository.create('Susu');
+        // Buat bahan aktif baru bernama Susu
+        await repository.create('Susu');
 
-      // Coba aktifkan kembali item1 yang nonaktif
-      expect(
-        () => repository.activate(item1.id!),
-        throwsA(
-          isA<ValidationException>().having(
-            (e) => e.message,
-            'message',
-            'Bahan aktif dengan nama tersebut sudah ada.',
+        // Coba aktifkan kembali item1 yang nonaktif
+        expect(
+          () => repository.activate(item1.id!),
+          throwsA(
+            isA<ValidationException>().having(
+              (e) => e.message,
+              'message',
+              'Bahan aktif dengan nama tersebut sudah ada.',
+            ),
           ),
-        ),
-      );
-    });
+        );
+      },
+    );
   });
 }
-
