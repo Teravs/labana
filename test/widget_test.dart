@@ -14,6 +14,9 @@ import 'package:labana/features/products/data/recipe_version_repository.dart';
 import 'package:labana/features/products/models/product_price.dart';
 import 'package:labana/features/products/models/recipe_item.dart';
 import 'package:labana/features/products/models/recipe_version.dart';
+import 'package:labana/features/sales/data/sale_repository.dart';
+import 'package:labana/features/sales/models/sale.dart';
+import 'package:labana/features/sales/models/sale_item.dart';
 import 'package:labana/main.dart';
 import 'package:labana/routes/app_routes.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -63,7 +66,7 @@ void main() {
     'Test 1 & 2: App dapat dijalankan dan menampilkan Home dashboard',
     (WidgetTester tester) async {
       await tester.pumpWidget(const LabanaApp());
-      await tester.pumpAndSettle();
+      await settleAsync(tester);
 
       expect(
         find.text('Selamat datang di ${AppConstants.appName}'),
@@ -75,7 +78,11 @@ void main() {
       expect(find.text('Modal / HPP'), findsOneWidget);
       expect(find.text('Laba'), findsOneWidget);
       expect(find.text('Transaksi'), findsOneWidget);
-      expect(find.text('—'), findsNWidgets(4));
+      expect(find.text('Rp0'), findsNWidgets(3));
+      expect(find.text('0'), findsOneWidget);
+      expect(find.text('0 produk terjual'), findsOneWidget);
+      expect(find.text('Belum ada penjualan'), findsNWidgets(2));
+      expect(find.text('Belum ada penjualan hari ini.'), findsOneWidget);
 
       expect(find.text('+ Penjualan'), findsOneWidget);
       expect(find.text('+ Bahan'), findsOneWidget);
@@ -216,7 +223,7 @@ void main() {
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(const LabanaApp());
-    await tester.pumpAndSettle();
+    await settleAsync(tester);
 
     await tester.tap(
       find.descendant(
@@ -224,7 +231,7 @@ void main() {
         matching: find.text('Penjualan'),
       ),
     );
-    await tester.pumpAndSettle();
+    await settleAsync(tester);
 
     expect(find.text('Belum ada transaksi.'), findsOneWidget);
     expect(
@@ -1288,6 +1295,124 @@ void main() {
       );
       expect(find.text('Belum ada transaksi.'), findsOneWidget);
       debugPrint('[Test 15] SELESAI');
+    },
+  );
+
+  // ---------------------------------------------------------------------------
+  // Test 16: End-to-End Home Dashboard Real Data & Quick Actions Flow
+  // ---------------------------------------------------------------------------
+  testWidgets(
+    'Test 16: End-to-End Home Dashboard Real Data, Ringkasan, Performa, dan Quick Actions',
+    (WidgetTester tester) async {
+      debugPrint(
+        '[Test 16] Langkah 1: Setup master data dan transaksi hari ini',
+      );
+      final prodRepo = ProductRepository();
+      final recipeVersionRepo = RecipeVersionRepository();
+      final prodPriceRepo = ProductPriceRepository();
+      final saleRepo = SaleRepository();
+
+      late final int p1Id;
+      final todayStr = SaleRepository.formatLocalDate(DateTime.now());
+
+      await tester.runAsync(() async {
+        final teh = await prodRepo.create('Es Teh Kampul');
+        p1Id = teh.id!;
+        await recipeVersionRepo.create(
+          RecipeVersion(
+            productId: p1Id,
+            versionNumber: 1,
+            effectiveFrom: '2026-09-01',
+            hppTotal: 1500,
+            status: 'active',
+            createdAt: '2026-09-01T00:00:00Z',
+          ),
+        );
+        await prodPriceRepo.create(
+          ProductPrice(
+            productId: p1Id,
+            sellingPrice: 5000,
+            effectiveFrom: '2026-09-01',
+            createdAt: '2026-09-01T00:00:00Z',
+          ),
+        );
+
+        // Buat 1 transaksi penjualan hari ini: Es Teh Kampul x 3 (omzet 15.000, hpp 4.500, laba 10.500)
+        await saleRepo.createSaleWithItems(
+          sale: Sale(
+            transactionNumber: 'TRX-$todayStr-001',
+            transactionDate: '$todayStr 11:30:00',
+            totalAmount: 15000,
+            totalHpp: 4500,
+            totalProfit: 10500,
+            createdAt: '$todayStr 11:30:00',
+            updatedAt: '$todayStr 11:30:00',
+          ),
+          items: [
+            SaleItem(
+              productId: p1Id,
+              recipeVersionId: 1,
+              productName: 'Es Teh Kampul',
+              quantity: 3.0,
+              sellingPrice: 5000,
+              hppPerUnit: 1500,
+              subtotal: 15000,
+              totalHpp: 4500,
+              totalProfit: 10500,
+              createdAt: '$todayStr 11:30:00',
+            ),
+          ],
+        );
+      });
+
+      debugPrint('[Test 16] Langkah 2: Buka aplikasi & verifikasi dashboard');
+      await tester.pumpWidget(const LabanaApp());
+      await settleAsync(tester);
+
+      // Verifikasi metrik finansial riil
+      expect(find.text('Rp15.000'), findsOneWidget);
+      expect(find.text('Rp4.500'), findsOneWidget);
+      expect(find.text('Rp10.500'), findsWidgets);
+      expect(find.text('1'), findsOneWidget); // 1 transaksi
+      expect(find.text('3 produk terjual'), findsOneWidget);
+
+      // Verifikasi insight produk terlaris & laba tertinggi
+      expect(find.text('Es Teh Kampul'), findsWidgets);
+      expect(find.text('3 terjual'), findsOneWidget);
+
+      debugPrint('[Test 16] Langkah 3: Uji Quick Action + Penjualan');
+      await tester.ensureVisible(find.text('+ Penjualan'));
+      await tester.tap(find.text('+ Penjualan'));
+      await settleAsync(tester);
+
+      expect(find.text('Tambah Penjualan'), findsOneWidget);
+      await tester.tap(find.byType(BackButton));
+      await settleAsync(tester);
+
+      debugPrint('[Test 16] Langkah 4: Uji Quick Action + Bahan');
+      await tester.ensureVisible(find.text('+ Bahan'));
+      await tester.tap(find.text('+ Bahan'));
+      await settleAsync(tester);
+
+      expect(find.text('Bahan Mentah'), findsWidgets);
+      await tester.tap(
+        find.descendant(
+          of: find.byType(NavigationBar),
+          matching: find.text('Home'),
+        ),
+      );
+      await settleAsync(tester);
+
+      debugPrint('[Test 16] Langkah 5: Uji Quick Action + Produk / Resep');
+      await tester.ensureVisible(find.text('+ Produk / Resep'));
+      await tester.tap(find.text('+ Produk / Resep'));
+      await settleAsync(tester);
+
+      expect(find.text('Produk & Resep'), findsOneWidget);
+      await tester.tap(find.byType(BackButton));
+      await settleAsync(tester);
+
+      debugPrint('[Test 16] SELESAI');
     },
   );
 }
