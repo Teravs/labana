@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:labana/core/constants/app_constants.dart';
+import 'package:labana/core/database/database_constants.dart';
 import 'package:labana/core/database/database_helper.dart';
 import 'package:labana/core/theme/theme_controller.dart';
 import 'package:labana/features/ingredients/data/ingredient_price_repository.dart';
@@ -247,7 +248,7 @@ void main() {
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(const LabanaApp());
-    await tester.pumpAndSettle();
+    await settleAsync(tester);
 
     await tester.tap(
       find.descendant(
@@ -255,12 +256,12 @@ void main() {
         matching: find.text('Laporan'),
       ),
     );
-    await tester.pumpAndSettle();
+    await settleAsync(tester);
 
     expect(find.text('Hari'), findsOneWidget);
     expect(find.text('Minggu'), findsOneWidget);
     expect(find.text('Bulan'), findsOneWidget);
-    expect(find.text('Belum ada data laporan.'), findsOneWidget);
+    expect(find.text('Belum ada transaksi pada periode ini.'), findsOneWidget);
   });
 
   // ---------------------------------------------------------------------------
@@ -1413,6 +1414,107 @@ void main() {
       await settleAsync(tester);
 
       debugPrint('[Test 16] SELESAI');
+    },
+  );
+
+  // ---------------------------------------------------------------------------
+  // Test 17: End-to-End Reports Flow (Periods, Real Data, Breakdown, and Navigation)
+  // ---------------------------------------------------------------------------
+  testWidgets(
+    'Test 17: End-to-End Reports Flow (Periods, Real Data, Breakdown, and Navigation)',
+    (WidgetTester tester) async {
+      debugPrint(
+        '[Test 17] Langkah 1: Setup master data dan transaksi hari ini',
+      );
+      final todayStr = SaleRepository.formatLocalDate(DateTime.now());
+
+      await tester.runAsync(() async {
+        final p1 = await testDb.insert(TableNames.products, {
+          'name': 'Es Kopi Aren',
+          'status': 'active',
+          'created_at': '2026-09-01 08:00:00',
+          'updated_at': '2026-09-01 08:00:00',
+        });
+        final r1 = await testDb.insert(TableNames.recipeVersions, {
+          'product_id': p1,
+          'version_number': 1,
+          'effective_from': '2026-09-01',
+          'hpp_total': 6000,
+          'status': 'active',
+          'created_at': '2026-09-01 08:00:00',
+        });
+
+        final saleRepo = SaleRepository();
+        final sale = Sale(
+          transactionNumber: '',
+          transactionDate: '$todayStr 11:00:00',
+          paymentMethod: 'qris',
+          totalAmount: 36000,
+          totalHpp: 12000,
+          totalProfit: 24000,
+          createdAt: '$todayStr 11:00:00',
+          updatedAt: '$todayStr 11:00:00',
+        );
+        final items = [
+          SaleItem(
+            productId: p1,
+            recipeVersionId: r1,
+            productName: 'Es Kopi Aren',
+            quantity: 2.0,
+            sellingPrice: 18000,
+            hppPerUnit: 6000,
+            subtotal: 36000,
+            totalHpp: 12000,
+            totalProfit: 24000,
+            createdAt: '$todayStr 11:00:00',
+          ),
+        ];
+        await saleRepo.createSaleWithItems(sale: sale, items: items);
+      });
+
+      debugPrint(
+        '[Test 17] Langkah 2: Buka aplikasi & navigasi ke tab Laporan',
+      );
+      await tester.pumpWidget(const LabanaApp());
+      await settleAsync(tester);
+
+      await tester.tap(
+        find.descendant(
+          of: find.byType(NavigationBar),
+          matching: find.text('Laporan'),
+        ),
+      );
+      await settleAsync(tester);
+
+      debugPrint('[Test 17] Langkah 3: Verifikasi tab Harian dengan data riil');
+      expect(find.text('Rp36.000'), findsWidgets); // Omzet
+      expect(find.text('Rp12.000'), findsWidgets); // HPP
+      expect(find.text('Rp24.000'), findsWidgets); // Laba
+      expect(find.text('1 Transaksi • 2 Terjual'), findsOneWidget);
+      expect(find.text('Es Kopi Aren'), findsWidgets);
+      expect(find.text('QRIS'), findsOneWidget);
+
+      debugPrint('[Test 17] Langkah 4: Uji perpindahan ke tab Mingguan');
+      await tester.tap(find.text('Minggu'));
+      await settleAsync(tester);
+      expect(find.text('Breakdown Harian'), findsOneWidget);
+      expect(find.text('7 Hari'), findsOneWidget);
+
+      debugPrint('[Test 17] Langkah 5: Uji perpindahan ke tab Bulanan');
+      await tester.tap(find.text('Bulan'));
+      await settleAsync(tester);
+      expect(find.text('Breakdown Harian'), findsOneWidget);
+
+      debugPrint('[Test 17] Langkah 6: Uji navigasi periode sebelumnya');
+      await tester.tap(find.byIcon(Icons.chevron_left_rounded));
+      await settleAsync(tester);
+      // Bulan lalu belum ada transaksi -> Empty state
+      expect(
+        find.text('Belum ada transaksi pada periode ini.'),
+        findsOneWidget,
+      );
+
+      debugPrint('[Test 17] SELESAI');
     },
   );
 }
