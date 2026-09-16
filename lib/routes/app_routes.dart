@@ -11,6 +11,7 @@ import '../features/reports/presentation/screens/reports_screen.dart';
 import '../features/sales/presentation/screens/sale_detail_screen.dart';
 import '../features/sales/presentation/screens/sale_form_screen.dart';
 import '../features/sales/presentation/screens/sales_screen.dart';
+import '../features/backup/presentation/screens/backup_restore_screen.dart';
 import '../features/settings/presentation/screens/settings_screen.dart';
 import '../features/shell/presentation/screens/app_shell.dart';
 
@@ -30,6 +31,7 @@ class AppRoutes {
   static const String saleEdit = '/sales/:id/edit';
   static const String reports = '/reports';
   static const String settings = '/settings';
+  static const String backupRestore = '/settings/backup';
 
   // Processed ingredients & products
   static const String processedIngredients = '/processed-ingredients';
@@ -181,6 +183,16 @@ class AppRouter {
                 builder: (BuildContext context, GoRouterState state) {
                   return const SettingsScreen();
                 },
+                routes: [
+                  GoRoute(
+                    path: 'backup',
+                    name: 'backup-restore',
+                    parentNavigatorKey: _rootNavigatorKey,
+                    builder: (BuildContext context, GoRouterState state) {
+                      return const BackupRestoreScreen();
+                    },
+                  ),
+                ],
               ),
             ],
           ),

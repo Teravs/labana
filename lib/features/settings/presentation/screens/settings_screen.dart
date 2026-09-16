@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/theme_controller.dart';
 import '../../../../core/utils/app_feedback.dart';
 import '../../../../core/widgets/app_section_title.dart';
+import '../../../../routes/app_routes.dart';
 
 /// Halaman Pengaturan dengan konfigurasi tema, placeholder data/arsip, dan informasi aplikasi.
 class SettingsScreen extends StatelessWidget {
@@ -91,7 +93,7 @@ class SettingsScreen extends StatelessWidget {
                       title: const Text('Backup Data'),
                       subtitle: const Text('Cadangkan database lokal'),
                       trailing: const Icon(Icons.chevron_right_rounded),
-                      onTap: () => AppFeedback.showFeatureNotice(context),
+                      onTap: () => context.push(AppRoutes.backupRestore),
                     ),
                     const Divider(height: 1, indent: 56),
                     ListTile(
@@ -99,7 +101,7 @@ class SettingsScreen extends StatelessWidget {
                       title: const Text('Restore Data'),
                       subtitle: const Text('Pulihkan database dari cadangan'),
                       trailing: const Icon(Icons.chevron_right_rounded),
-                      onTap: () => AppFeedback.showFeatureNotice(context),
+                      onTap: () => context.push(AppRoutes.backupRestore),
                     ),
                   ],
                 ),

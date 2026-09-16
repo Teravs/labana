@@ -44,7 +44,9 @@ class ReportPdfService {
       // 1. Generate PDF bytes murni
       final bytes = await _generator.generateReportPdf(data);
       if (bytes.isEmpty) {
-        throw const PdfExportException('Gagal menghasilkan dokumen PDF (data kosong).');
+        throw const PdfExportException(
+          'Gagal menghasilkan dokumen PDF (data kosong).',
+        );
       }
 
       // 2. Simpan ke direktori dokumen aplikasi
@@ -79,4 +81,3 @@ class ReportPdfService {
     }
   }
 }
-

@@ -62,12 +62,41 @@ class DatabaseHelper {
     return await db.transaction(action);
   }
 
+  /// Mengembalikan path absolut berkas database SQLite aktif.
+  Future<String> getDatabasePath() async {
+    if (_database != null &&
+        _database!.isOpen &&
+        _database!.path.isNotEmpty &&
+        _database!.path != inMemoryDatabasePath) {
+      return _database!.path;
+    }
+    final databasesPath = await getDatabasesPath();
+    return join(databasesPath, DatabaseConstants.databaseName);
+  }
+
+  /// Menjalankan PRAGMA wal_checkpoint(FULL) jika koneksi aktif untuk mengonsolidasikan seluruh log WAL ke file utama.
+  Future<void> checkpoint() async {
+    if (_database != null && _database!.isOpen) {
+      try {
+        await _database!.execute('PRAGMA wal_checkpoint(FULL);');
+      } catch (_) {
+        // Abaikan jika mode jurnal non-WAL atau database in-memory
+      }
+    }
+  }
+
   /// Menutup koneksi database jika sedang terbuka.
   Future<void> close() async {
     if (_database != null && _database!.isOpen) {
       await _database!.close();
       _database = null;
     }
+  }
+
+  /// Menutup koneksi database lama dan membuka instance database baru secara bersih.
+  Future<Database> reopenDatabase() async {
+    await close();
+    return await database;
   }
 
   /// Menyetel instance database khusus untuk kebutuhan unit testing (in-memory).

@@ -10,22 +10,33 @@ void main() {
   runApp(const LabanaApp());
 }
 
+/// Notifier global untuk memicu rekonstruksi bersih seluruh widget tree saat database dipulihkan.
+final ValueNotifier<int> appReloadNotifier = ValueNotifier<int>(0);
+
 /// Root widget aplikasi Labana.
 class LabanaApp extends StatelessWidget {
   const LabanaApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<ThemeMode>(
-      valueListenable: appThemeModeNotifier,
-      builder: (context, currentThemeMode, _) {
-        return MaterialApp.router(
-          title: AppConstants.appName,
-          theme: AppTheme.lightTheme,
-          darkTheme: AppTheme.darkTheme,
-          themeMode: currentThemeMode,
-          routerConfig: AppRouter.router,
-          debugShowCheckedModeBanner: false,
+    return ValueListenableBuilder<int>(
+      valueListenable: appReloadNotifier,
+      builder: (context, reloadCount, _) {
+        return ValueListenableBuilder<ThemeMode>(
+          valueListenable: appThemeModeNotifier,
+          builder: (context, currentThemeMode, _) {
+            return KeyedSubtree(
+              key: ValueKey('labana_root_$reloadCount'),
+              child: MaterialApp.router(
+                title: AppConstants.appName,
+                theme: AppTheme.lightTheme,
+                darkTheme: AppTheme.darkTheme,
+                themeMode: currentThemeMode,
+                routerConfig: AppRouter.router,
+                debugShowCheckedModeBanner: false,
+              ),
+            );
+          },
         );
       },
     );

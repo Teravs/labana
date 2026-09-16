@@ -60,10 +60,9 @@ class AppPdfFileStorage implements PdfFileStorage {
     if (!await file.exists()) return false;
 
     final xFile = XFile(filePath, mimeType: 'application/pdf');
-    final result = await Share.shareXFiles(
-      [xFile],
-      subject: subject ?? 'Laporan Penjualan Labana',
-    );
+    final result = await Share.shareXFiles([
+      xFile,
+    ], subject: subject ?? 'Laporan Penjualan Labana');
 
     // Pada Android/iOS Share.shareXFiles mengembalikan status ShareResult
     return result.status != ShareResultStatus.unavailable;
@@ -90,10 +89,9 @@ class AppPdfFileStorage implements PdfFileStorage {
       case ReportPeriodType.weekly:
         return 'Laporan-Labana-Mingguan-${data.startDate}-sd-${data.endDate}';
       case ReportPeriodType.monthly:
-        final monthStr =
-            data.startDate.length >= 7
-                ? data.startDate.substring(0, 7)
-                : data.startDate;
+        final monthStr = data.startDate.length >= 7
+            ? data.startDate.substring(0, 7)
+            : data.startDate;
         return 'Laporan-Labana-Bulanan-$monthStr';
     }
   }
@@ -136,4 +134,3 @@ class FakePdfFileStorage implements PdfFileStorage {
     return true;
   }
 }
-
