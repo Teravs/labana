@@ -281,10 +281,9 @@ class ReportRepository {
     );
 
     // Kueri breakdown harian hanya untuk periode mingguan dan bulanan
-    final dailyFuture =
-        (periodType == ReportPeriodType.daily)
-            ? Future.value(<DailyReportStat>[])
-            : getDailyBreakdown(startDate, endDate, executor: executor);
+    final dailyFuture = (periodType == ReportPeriodType.daily)
+        ? Future.value(<DailyReportStat>[])
+        : getDailyBreakdown(startDate, endDate, executor: executor);
 
     final results = await Future.wait([
       summaryFuture,
@@ -315,4 +314,3 @@ class ReportRepository {
     );
   }
 }
-

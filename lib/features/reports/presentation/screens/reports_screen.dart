@@ -6,12 +6,14 @@ import '../../../sales/data/sale_repository.dart';
 import '../../data/report_repository.dart';
 import '../../models/report_models.dart';
 import '../../services/report_date_helper.dart';
+import '../../services/report_pdf_service.dart';
 
 /// Halaman Laporan Penjualan (Harian, Mingguan, Bulanan) berbasis data riil SQLite.
 class ReportsScreen extends StatefulWidget {
   final ReportRepository? reportRepo;
+  final ReportPdfService? pdfService;
 
-  const ReportsScreen({super.key, this.reportRepo});
+  const ReportsScreen({super.key, this.reportRepo, this.pdfService});
 
   @override
   State<ReportsScreen> createState() => _ReportsScreenState();
@@ -19,18 +21,21 @@ class ReportsScreen extends StatefulWidget {
 
 class _ReportsScreenState extends State<ReportsScreen> {
   late final ReportRepository _reportRepo;
+  late final ReportPdfService _pdfService;
 
   ReportPeriodType _selectedPeriod = ReportPeriodType.daily;
   DateTime _referenceDate = DateTime.now();
 
   ReportData? _reportData;
   bool _isLoading = false;
+  bool _isExporting = false;
   String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
     _reportRepo = widget.reportRepo ?? ReportRepository();
+    _pdfService = widget.pdfService ?? const ReportPdfService();
     _loadReportData();
     SaleRepository.salesChangeNotifier.addListener(_onSalesChanged);
   }
@@ -121,6 +126,56 @@ class _ReportsScreenState extends State<ReportsScreen> {
     }
   }
 
+  Future<void> _handleExportPdf() async {
+    final currentData = _reportData;
+    if (currentData == null || _isExporting) return;
+
+    setState(() {
+      _isExporting = true;
+    });
+
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Membuat PDF...'),
+        duration: Duration(seconds: 1),
+      ),
+    );
+
+    try {
+      final result = await _pdfService.exportAndShareReport(currentData);
+      if (mounted) {
+        setState(() {
+          _isExporting = false;
+        });
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Laporan PDF berhasil dibuat (${result.fileName}).'),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isExporting = false;
+        });
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Gagal membuat laporan PDF.'),
+            action: SnackBarAction(
+              label: 'Coba Lagi',
+              onPressed: _handleExportPdf,
+            ),
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -129,7 +184,22 @@ class _ReportsScreenState extends State<ReportsScreen> {
     final hasData = _reportData != null && !_reportData!.isEmpty;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Laporan')),
+      appBar: AppBar(
+        title: const Text('Laporan'),
+        actions: [
+          IconButton(
+            icon: Icon(
+              _isExporting
+                  ? Icons.hourglass_top_rounded
+                  : Icons.picture_as_pdf_outlined,
+            ),
+            tooltip: 'Export PDF',
+            onPressed: (_isLoading || _isExporting || _reportData == null)
+                ? null
+                : _handleExportPdf,
+          ),
+        ],
+      ),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: _loadReportData,

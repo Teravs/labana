@@ -10,12 +10,16 @@ import 'package:labana/features/reports/services/report_date_helper.dart';
 import 'package:labana/features/sales/data/sale_repository.dart';
 import 'package:labana/features/sales/models/sale.dart';
 import 'package:labana/features/sales/models/sale_item.dart';
+import 'package:labana/features/reports/services/pdf_file_storage.dart';
+import 'package:labana/features/reports/services/report_pdf_service.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() {
   late Database testDb;
   late SaleRepository saleRepo;
   late ReportRepository reportRepo;
+  late FakePdfFileStorage fakeStorage;
+  late ReportPdfService pdfService;
 
   setUpAll(() {
     sqfliteFfiInit();
@@ -33,6 +37,8 @@ void main() {
     DatabaseHelper.instance.setTestDatabase(testDb);
     saleRepo = SaleRepository();
     reportRepo = ReportRepository();
+    fakeStorage = FakePdfFileStorage();
+    pdfService = ReportPdfService(storage: fakeStorage);
   });
 
   tearDown(() async {
@@ -135,12 +141,18 @@ void main() {
     return await saleRepo.createSaleWithItems(sale: sale, items: saleItems);
   }
 
-  Widget createTestWidget({ThemeMode themeMode = ThemeMode.light}) {
+  Widget createTestWidget({
+    ThemeMode themeMode = ThemeMode.light,
+    ReportPdfService? pdfServiceOverride,
+  }) {
     return MaterialApp(
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: themeMode,
-      home: ReportsScreen(reportRepo: reportRepo),
+      home: ReportsScreen(
+        reportRepo: reportRepo,
+        pdfService: pdfServiceOverride ?? pdfService,
+      ),
     );
   }
 
@@ -183,7 +195,14 @@ void main() {
             date: todayStr,
             paymentMethod: 'cash',
             itemsData: [
-              (productId: p1, recipeVersionId: r1, name: 'Es Teh', qty: 2.0, price: 5000, hpp: 1000),
+              (
+                productId: p1,
+                recipeVersionId: r1,
+                name: 'Es Teh',
+                qty: 2.0,
+                price: 5000,
+                hpp: 1000,
+              ),
             ],
           );
         });
@@ -369,6 +388,96 @@ void main() {
 
       expect(find.text('Laporan'), findsOneWidget);
       expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('Tombol Export PDF muncul pada AppBar ReportsScreen', (
+      tester,
+    ) async {
+      await tester.pumpWidget(createTestWidget());
+      await settleAsync(tester);
+
+      expect(find.byTooltip('Export PDF'), findsOneWidget);
+      expect(find.byIcon(Icons.picture_as_pdf_outlined), findsOneWidget);
+    });
+
+    testWidgets(
+      'Ekspor PDF berhasil memanggil service dan menampilkan notifikasi sukses',
+      (tester) async {
+        final todayStr = ReportDateHelper.formatDate(DateTime.now());
+
+        await tester.runAsync(() async {
+          final p1 = await insertProduct('Es Kopi Susu');
+          final r1 = await insertRecipeVersion(p1, 3000);
+          await createSaleHelper(
+            date: todayStr,
+            paymentMethod: 'cash',
+            itemsData: [
+              (
+                productId: p1,
+                recipeVersionId: r1,
+                name: 'Es Kopi Susu',
+                qty: 2.0,
+                price: 10000,
+                hpp: 3000,
+              ),
+            ],
+          );
+        });
+
+        await tester.pumpWidget(createTestWidget());
+        await settleAsync(tester);
+
+        // Tekan tombol Export PDF di AppBar
+        await tester.tap(find.byTooltip('Export PDF'));
+        await settleAsync(tester);
+
+        // Notifikasi sukses muncul
+        expect(
+          find.textContaining('Laporan PDF berhasil dibuat'),
+          findsOneWidget,
+        );
+        // File tersimpan di fakeStorage
+        expect(fakeStorage.storedFiles.length, 1);
+        // Share sheet terpanggil
+        expect(fakeStorage.sharedFiles.length, 1);
+      },
+    );
+
+    testWidgets(
+      'Simulasi kendala ekspor memunculkan notifikasi error dengan opsi Coba Lagi',
+      (tester) async {
+        fakeStorage.simulateSaveError = true;
+
+        await tester.pumpWidget(createTestWidget());
+        await settleAsync(tester);
+
+        await tester.tap(find.byTooltip('Export PDF'));
+        await settleAsync(tester);
+
+        expect(find.text('Gagal membuat laporan PDF.'), findsOneWidget);
+        expect(find.text('Coba Lagi'), findsOneWidget);
+      },
+    );
+
+    testWidgets('Ekspor PDF pada tab Mingguan tetap berfungsi normal', (
+      tester,
+    ) async {
+      await tester.pumpWidget(createTestWidget());
+      await settleAsync(tester);
+
+      // Pindah ke tab Mingguan
+      await tester.tap(find.text('Minggu'));
+      await settleAsync(tester);
+
+      // Ekspor PDF mingguan
+      await tester.tap(find.byTooltip('Export PDF'));
+      await settleAsync(tester);
+
+      expect(
+        find.textContaining('Laporan PDF berhasil dibuat'),
+        findsOneWidget,
+      );
+      expect(fakeStorage.storedFiles.keys.first, contains('Mingguan'));
     });
   });
 }

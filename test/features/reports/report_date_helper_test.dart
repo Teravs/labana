@@ -16,59 +16,71 @@ void main() {
       expect(dt.day, 16);
     });
 
-    test('getWeekRange menghasilkan Senin s/d Minggu yang memuat tanggal acuan', () {
-      // Rabu, 16 September 2026
-      final wednesday = DateTime(2026, 9, 16);
-      final range = ReportDateHelper.getWeekRange(wednesday);
+    test(
+      'getWeekRange menghasilkan Senin s/d Minggu yang memuat tanggal acuan',
+      () {
+        // Rabu, 16 September 2026
+        final wednesday = DateTime(2026, 9, 16);
+        final range = ReportDateHelper.getWeekRange(wednesday);
 
-      expect(range.start.year, 2026);
-      expect(range.start.month, 9);
-      expect(range.start.day, 14); // Senin
-      expect(range.start.weekday, DateTime.monday);
+        expect(range.start.year, 2026);
+        expect(range.start.month, 9);
+        expect(range.start.day, 14); // Senin
+        expect(range.start.weekday, DateTime.monday);
 
-      expect(range.end.year, 2026);
-      expect(range.end.month, 9);
-      expect(range.end.day, 20); // Minggu
-      expect(range.end.weekday, DateTime.sunday);
-    });
+        expect(range.end.year, 2026);
+        expect(range.end.month, 9);
+        expect(range.end.day, 20); // Minggu
+        expect(range.end.weekday, DateTime.sunday);
+      },
+    );
 
-    test('getWeekRange pada hari Senin menghasilkan awal minggu hari itu sendiri', () {
-      final monday = DateTime(2026, 9, 14);
-      final range = ReportDateHelper.getWeekRange(monday);
+    test(
+      'getWeekRange pada hari Senin menghasilkan awal minggu hari itu sendiri',
+      () {
+        final monday = DateTime(2026, 9, 14);
+        final range = ReportDateHelper.getWeekRange(monday);
 
-      expect(range.start.day, 14);
-      expect(range.end.day, 20);
-    });
+        expect(range.start.day, 14);
+        expect(range.end.day, 20);
+      },
+    );
 
-    test('getWeekRange pada hari Minggu menghasilkan akhir minggu hari itu sendiri', () {
-      final sunday = DateTime(2026, 9, 20);
-      final range = ReportDateHelper.getWeekRange(sunday);
+    test(
+      'getWeekRange pada hari Minggu menghasilkan akhir minggu hari itu sendiri',
+      () {
+        final sunday = DateTime(2026, 9, 20);
+        final range = ReportDateHelper.getWeekRange(sunday);
 
-      expect(range.start.day, 14);
-      expect(range.end.day, 20);
-    });
+        expect(range.start.day, 14);
+        expect(range.end.day, 20);
+      },
+    );
 
-    test('getMonthRange menghasilkan hari pertama dan terakhir bulan dengan tepat', () {
-      // September (30 hari)
-      final sep = ReportDateHelper.getMonthRange(2026, 9);
-      expect(sep.start.day, 1);
-      expect(sep.end.day, 30);
+    test(
+      'getMonthRange menghasilkan hari pertama dan terakhir bulan dengan tepat',
+      () {
+        // September (30 hari)
+        final sep = ReportDateHelper.getMonthRange(2026, 9);
+        expect(sep.start.day, 1);
+        expect(sep.end.day, 30);
 
-      // Oktober (31 hari)
-      final okt = ReportDateHelper.getMonthRange(2026, 10);
-      expect(okt.start.day, 1);
-      expect(okt.end.day, 31);
+        // Oktober (31 hari)
+        final okt = ReportDateHelper.getMonthRange(2026, 10);
+        expect(okt.start.day, 1);
+        expect(okt.end.day, 31);
 
-      // Februari tahun bukan kabisat (2025: 28 hari)
-      final feb2025 = ReportDateHelper.getMonthRange(2025, 2);
-      expect(feb2025.start.day, 1);
-      expect(feb2025.end.day, 28);
+        // Februari tahun bukan kabisat (2025: 28 hari)
+        final feb2025 = ReportDateHelper.getMonthRange(2025, 2);
+        expect(feb2025.start.day, 1);
+        expect(feb2025.end.day, 28);
 
-      // Februari tahun kabisat (2024: 29 hari)
-      final feb2024 = ReportDateHelper.getMonthRange(2024, 2);
-      expect(feb2024.start.day, 1);
-      expect(feb2024.end.day, 29);
-    });
+        // Februari tahun kabisat (2024: 29 hari)
+        final feb2024 = ReportDateHelper.getMonthRange(2024, 2);
+        expect(feb2024.start.day, 1);
+        expect(feb2024.end.day, 29);
+      },
+    );
 
     test('getDaysInRange mengembalikan seluruh tanggal inklusif', () {
       final start = DateTime(2026, 9, 14);
@@ -80,39 +92,45 @@ void main() {
       expect(days.last.day, 20);
     });
 
-    test('getPreviousPeriod dan getNextPeriod bekerja pada setiap tipe periode', () {
-      final base = DateTime(2026, 9, 16);
+    test(
+      'getPreviousPeriod dan getNextPeriod bekerja pada setiap tipe periode',
+      () {
+        final base = DateTime(2026, 9, 16);
 
-      // Daily: mundur/maju 1 hari
-      expect(
-        ReportDateHelper.getPreviousPeriod(ReportPeriodType.daily, base).day,
-        15,
-      );
-      expect(
-        ReportDateHelper.getNextPeriod(ReportPeriodType.daily, base).day,
-        17,
-      );
+        // Daily: mundur/maju 1 hari
+        expect(
+          ReportDateHelper.getPreviousPeriod(ReportPeriodType.daily, base).day,
+          15,
+        );
+        expect(
+          ReportDateHelper.getNextPeriod(ReportPeriodType.daily, base).day,
+          17,
+        );
 
-      // Weekly: mundur/maju 7 hari
-      expect(
-        ReportDateHelper.getPreviousPeriod(ReportPeriodType.weekly, base).day,
-        9,
-      );
-      expect(
-        ReportDateHelper.getNextPeriod(ReportPeriodType.weekly, base).day,
-        23,
-      );
+        // Weekly: mundur/maju 7 hari
+        expect(
+          ReportDateHelper.getPreviousPeriod(ReportPeriodType.weekly, base).day,
+          9,
+        );
+        expect(
+          ReportDateHelper.getNextPeriod(ReportPeriodType.weekly, base).day,
+          23,
+        );
 
-      // Monthly: mundur/maju 1 bulan
-      expect(
-        ReportDateHelper.getPreviousPeriod(ReportPeriodType.monthly, base).month,
-        8,
-      );
-      expect(
-        ReportDateHelper.getNextPeriod(ReportPeriodType.monthly, base).month,
-        10,
-      );
-    });
+        // Monthly: mundur/maju 1 bulan
+        expect(
+          ReportDateHelper.getPreviousPeriod(
+            ReportPeriodType.monthly,
+            base,
+          ).month,
+          8,
+        );
+        expect(
+          ReportDateHelper.getNextPeriod(ReportPeriodType.monthly, base).month,
+          10,
+        );
+      },
+    );
 
     test('formatPeriodLabel memformat label bahasa Indonesia dengan benar', () {
       final dt = DateTime(2026, 9, 16);
@@ -151,4 +169,3 @@ void main() {
     });
   });
 }
-

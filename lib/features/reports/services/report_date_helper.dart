@@ -118,10 +118,7 @@ class ReportDateHelper {
   }
 
   /// Mengembalikan tanggal acuan untuk periode berikutnya.
-  static DateTime getNextPeriod(
-    ReportPeriodType type,
-    DateTime referenceDate,
-  ) {
+  static DateTime getNextPeriod(ReportPeriodType type, DateTime referenceDate) {
     final clean = DateTime(
       referenceDate.year,
       referenceDate.month,
@@ -153,10 +150,7 @@ class ReportDateHelper {
           endDate: formatDate(range.end),
         );
       case ReportPeriodType.monthly:
-        final range = getMonthRange(
-          referenceDate.year,
-          referenceDate.month,
-        );
+        final range = getMonthRange(referenceDate.year, referenceDate.month);
         return (
           startDate: formatDate(range.start),
           endDate: formatDate(range.end),
@@ -206,4 +200,3 @@ class ReportDateHelper {
     }
   }
 }
-
