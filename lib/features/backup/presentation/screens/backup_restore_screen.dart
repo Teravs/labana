@@ -101,9 +101,10 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
       }
     } catch (e) {
       if (mounted) {
+        final message = e is FormatException ? e.message : e.toString();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Gagal memilih berkas luar: $e'),
+            content: Text(message),
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
@@ -517,6 +518,7 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
                     // SEKSI 2: PULIHKAN DARI LUAR
                     const AppSectionTitle(title: 'Pulihkan dari Berkas Luar'),
                     Card(
+                      clipBehavior: Clip.antiAlias,
                       child: ListTile(
                         leading: Container(
                           width: 44,
@@ -591,6 +593,7 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
                         itemBuilder: (context, index) {
                           final backup = _localBackups[index];
                           return Card(
+                            clipBehavior: Clip.antiAlias,
                             child: ListTile(
                               leading: Container(
                                 width: 40,
@@ -607,12 +610,16 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
                               ),
                               title: Text(
                                 backup.fileName,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                                 style: theme.textTheme.bodyMedium?.copyWith(
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
                               subtitle: Text(
                                 '${backup.formattedDate} • ${backup.formattedFileSize}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                                 style: theme.textTheme.bodySmall?.copyWith(
                                   color: colorScheme.onSurface.withAlpha(160),
                                 ),

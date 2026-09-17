@@ -99,11 +99,12 @@ class UnitConverter {
     }
   }
 
-  /// Melakukan validasi apakah satuan pembelian kompatibel dengan satuan dasar tujuan.
-  static bool isCompatible(String purchaseUnit, String targetBaseUnit) {
+  /// Melakukan validasi apakah dua satuan kompatibel (berada dalam kelompok yang sama: massa, volume, atau unit).
+  static bool isCompatible(String unitA, String unitB) {
     try {
-      final expectedBaseUnit = getBaseUnit(purchaseUnit);
-      return expectedBaseUnit == targetBaseUnit;
+      final baseA = getBaseUnit(unitA);
+      final baseB = getBaseUnit(unitB);
+      return baseA == baseB;
     } catch (_) {
       return false;
     }

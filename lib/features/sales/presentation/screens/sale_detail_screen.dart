@@ -282,10 +282,17 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                        Text(
-                          CurrencyFormatter.formatRupiah(sale.totalAmount),
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerRight,
+                            child: Text(
+                              CurrencyFormatter.formatRupiah(sale.totalAmount),
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
                           ),
                         ),
                       ],
@@ -300,11 +307,18 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
                             color: colorScheme.onSurfaceVariant,
                           ),
                         ),
-                        Text(
-                          CurrencyFormatter.formatRupiah(sale.totalHpp),
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: colorScheme.onSurfaceVariant,
-                            fontWeight: FontWeight.w600,
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerRight,
+                            child: Text(
+                              CurrencyFormatter.formatRupiah(sale.totalHpp),
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: colorScheme.onSurfaceVariant,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                           ),
                         ),
                       ],
@@ -321,13 +335,20 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
                             fontWeight: FontWeight.w700,
                           ),
                         ),
-                        Text(
-                          CurrencyFormatter.formatRupiah(sale.totalProfit),
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
-                            color: isProfitPositive
-                                ? AppColors.primary
-                                : AppColors.error,
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerRight,
+                            child: Text(
+                              CurrencyFormatter.formatRupiah(sale.totalProfit),
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w700,
+                                color: isProfitPositive
+                                    ? AppColors.primary
+                                    : AppColors.error,
+                              ),
+                            ),
                           ),
                         ),
                       ],

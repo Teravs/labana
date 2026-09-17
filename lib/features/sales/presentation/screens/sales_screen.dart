@@ -72,26 +72,13 @@ class _SalesScreenState extends State<SalesScreen> {
                 children: [
                   ListView(), // Agar RefreshIndicator dapat di-pull saat empty
                   Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        AppEmptyState(
-                          icon: Icons.receipt_long_outlined,
-                          title: 'Belum ada transaksi.',
-                          message:
-                              'Mulai catat penjualan untuk melihat transaksi di sini.',
-                          actionLabel: '+ Tambah Penjualan',
-                          onActionPressed: _openAddSale,
-                        ),
-                        // Subtitle kompatibilitas untuk widget testing existing
-                        const Opacity(
-                          opacity: 0.0,
-                          child: Text(
-                            'Transaksi penjualan yang kamu buat akan muncul di sini.',
-                            style: TextStyle(fontSize: 0.1),
-                          ),
-                        ),
-                      ],
+                    child: AppEmptyState(
+                      icon: Icons.receipt_long_outlined,
+                      title: 'Belum ada transaksi.',
+                      message:
+                          'Transaksi penjualan yang kamu buat akan muncul di sini.',
+                      actionLabel: '+ Tambah Penjualan',
+                      onActionPressed: _openAddSale,
                     ),
                   ),
                 ],

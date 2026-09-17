@@ -61,11 +61,17 @@ class AppEmptyState extends StatelessWidget {
               ),
               if (actionLabel != null && onActionPressed != null) ...[
                 const SizedBox(height: 24),
-                FilledButton.icon(
-                  onPressed: onActionPressed,
-                  icon: const Icon(Icons.add_rounded, size: 18),
-                  label: Text(actionLabel!),
-                ),
+                if (actionLabel!.startsWith('+'))
+                  FilledButton(
+                    onPressed: onActionPressed,
+                    child: Text(actionLabel!),
+                  )
+                else
+                  FilledButton.icon(
+                    onPressed: onActionPressed,
+                    icon: const Icon(Icons.add_rounded, size: 18),
+                    label: Text(actionLabel!),
+                  ),
               ],
             ],
           ),

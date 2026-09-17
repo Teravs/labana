@@ -110,7 +110,24 @@ class _HomeScreenState extends State<HomeScreen> {
     final summary = _dashboardData?.summary ?? const DashboardSummary();
 
     return Scaffold(
-      appBar: AppBar(title: Text(AppConstants.appName)),
+      appBar: AppBar(
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: Image.asset(
+                AppConstants.logoIconPath,
+                width: 28,
+                height: 28,
+                fit: BoxFit.cover,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Text(AppConstants.appName),
+          ],
+        ),
+      ),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: _loadDashboardData,

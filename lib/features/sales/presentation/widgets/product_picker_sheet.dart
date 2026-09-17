@@ -267,7 +267,11 @@ class _ProductPickerSheetState extends State<ProductPickerSheet> {
                                         ),
                                         const SizedBox(height: 4),
                                         if (isSelectable)
-                                          Row(
+                                          Wrap(
+                                            crossAxisAlignment:
+                                                WrapCrossAlignment.center,
+                                            spacing: 4,
+                                            runSpacing: 2,
                                             children: [
                                               Text(
                                                 CurrencyFormatter.formatRupiah(
@@ -282,7 +286,7 @@ class _ProductPickerSheetState extends State<ProductPickerSheet> {
                                                     ),
                                               ),
                                               Text(
-                                                ' • HPP ${CurrencyFormatter.formatRupiah(item.hppPerUnit!)}',
+                                                '• HPP ${CurrencyFormatter.formatRupiah(item.hppPerUnit!)}',
                                                 style: theme.textTheme.bodySmall
                                                     ?.copyWith(
                                                       color: colorScheme
@@ -290,7 +294,7 @@ class _ProductPickerSheetState extends State<ProductPickerSheet> {
                                                     ),
                                               ),
                                               Text(
-                                                ' • Laba ${CurrencyFormatter.formatRupiah(item.profitPerUnit!)}',
+                                                '• Laba ${CurrencyFormatter.formatRupiah(item.profitPerUnit!)}',
                                                 style: theme.textTheme.bodySmall
                                                     ?.copyWith(
                                                       color:

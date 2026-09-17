@@ -887,5 +887,74 @@ void main() {
         expect(result.warnings, isNotEmpty);
       },
     );
+
+    test(
+      'UAT-05 Regression: Input 500 g vs 0.5 kg Gula (harga 1 kg = Rp20.000) menghasilkan biaya yang sama persis (Rp10.000)',
+      () {
+        final gulaPrice = IngredientPrice(
+          id: 1,
+          ingredientId: 10,
+          purchaseQuantity: 1,
+          purchaseUnit: 'kg',
+          baseQuantity: 1000,
+          baseUnit: 'g',
+          price: 20000,
+          isDefault: true,
+          effectiveFrom: '2026-01-01',
+        );
+
+        final sirup = const ProcessedIngredient(
+          id: 100,
+          name: 'Sirup Gula',
+          resultQuantity: 500,
+          resultUnit: 'ml',
+        );
+
+        // Kasus A: Input 500 g
+        final compGram = const ProcessedComponent(
+          componentType: ProcessedComponent.typeIngredient,
+          ingredientId: 10,
+          quantity: 500,
+          unit: 'g',
+        );
+
+        final resultGram =
+            ProcessedIngredientCalculator.calculateProcessedIngredientCost(
+              processedIngredient: sirup,
+              components: [compGram],
+              pricesByIngredientId: {
+                10: [gulaPrice],
+              },
+              ingredientNamesById: {10: 'Gula'},
+              calculationDate: calculationDate,
+            );
+
+        // Kasus B: Input 0.5 kg
+        final compKg = const ProcessedComponent(
+          componentType: ProcessedComponent.typeIngredient,
+          ingredientId: 10,
+          quantity: 0.5,
+          unit: 'kg',
+        );
+
+        final resultKg =
+            ProcessedIngredientCalculator.calculateProcessedIngredientCost(
+              processedIngredient: sirup,
+              components: [compKg],
+              pricesByIngredientId: {
+                10: [gulaPrice],
+              },
+              ingredientNamesById: {10: 'Gula'},
+              calculationDate: calculationDate,
+            );
+
+        expect(resultGram.hasUnresolvedCost, isFalse);
+        expect(resultKg.hasUnresolvedCost, isFalse);
+        expect(resultGram.totalCost, 10000.0);
+        expect(resultKg.totalCost, 10000.0);
+        expect(resultGram.costPerResultUnit, 20.0);
+        expect(resultKg.costPerResultUnit, 20.0);
+      },
+    );
   });
 }

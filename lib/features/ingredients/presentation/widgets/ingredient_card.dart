@@ -64,6 +64,8 @@ class IngredientCard extends StatelessWidget {
                   children: [
                     Text(
                       ingredient.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w700,
                         color: isActive

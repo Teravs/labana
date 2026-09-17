@@ -75,10 +75,13 @@ class ProductCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(
                           child: Text(
                             product.name,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                             style: theme.textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.w700,
                               color: isActive
@@ -90,7 +93,8 @@ class ProductCard extends StatelessWidget {
                             ),
                           ),
                         ),
-                        if (isActive && activeRecipeVersion != null)
+                        if (isActive && activeRecipeVersion != null) ...[
+                          const SizedBox(width: 6),
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 6,
@@ -110,24 +114,27 @@ class ProductCard extends StatelessWidget {
                               ),
                             ),
                           ),
+                        ],
                       ],
                     ),
                     const SizedBox(height: 4),
 
                     if (isActive) ...[
                       // Harga Jual & HPP
-                      Row(
+                      Wrap(
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        spacing: 8,
+                        runSpacing: 2,
                         children: [
                           Text(
                             currentPrice != null
                                 ? CurrencyFormatter.formatRupiah(sellingPrice)
-                                : 'Harga belum diatur',
+                                : 'Belum ada harga',
                             style: theme.textTheme.bodyMedium?.copyWith(
                               fontWeight: FontWeight.w700,
                               color: colorScheme.primary,
                             ),
                           ),
-                          const SizedBox(width: 8),
                           Text(
                             '• HPP: ${CurrencyFormatter.formatRupiah(hpp)}',
                             style: theme.textTheme.bodySmall?.copyWith(
@@ -141,7 +148,10 @@ class ProductCard extends StatelessWidget {
 
                       // Estimasi Laba
                       if (currentPrice != null)
-                        Row(
+                        Wrap(
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          spacing: 6,
+                          runSpacing: 2,
                           children: [
                             Text(
                               'Laba: ${CurrencyFormatter.formatRupiah(profit)}',
@@ -152,8 +162,7 @@ class ProductCard extends StatelessWidget {
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
-                            if (isBelowHpp) ...[
-                              const SizedBox(width: 6),
+                            if (isBelowHpp)
                               Container(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 4,
@@ -172,7 +181,6 @@ class ProductCard extends StatelessWidget {
                                   ),
                                 ),
                               ),
-                            ],
                           ],
                         ),
                     ] else ...[

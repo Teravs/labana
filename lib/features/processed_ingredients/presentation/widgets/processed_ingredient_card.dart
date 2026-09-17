@@ -67,6 +67,8 @@ class ProcessedIngredientCard extends StatelessWidget {
                   children: [
                     Text(
                       processedIngredient.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w700,
                         color: isActive
@@ -80,6 +82,8 @@ class ProcessedIngredientCard extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       'Hasil: ${processedIngredient.formattedResultQuantity} ${processedIngredient.resultUnit} • $componentCount komponen',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: isActive
                             ? colorScheme.onSurface.withAlpha(160)

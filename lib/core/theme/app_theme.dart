@@ -154,17 +154,32 @@ class AppTheme {
         ),
       ),
       navigationBarTheme: NavigationBarThemeData(
+        height: 70,
         elevation: 0,
         backgroundColor: AppColors.lightSurfaceContainer,
         indicatorColor: AppColors.lightPrimaryContainer,
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+        iconTheme: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return const IconThemeData(size: 24, color: AppColors.lightPrimary);
+          }
+          return IconThemeData(
+            size: 24,
+            color: AppColors.lightOnSurface.withAlpha(180),
+          );
+        }),
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
             return textTheme.labelSmall?.copyWith(
+              fontSize: 11,
+              letterSpacing: -0.3,
               fontWeight: FontWeight.w700,
               color: AppColors.lightPrimary,
             );
           }
           return textTheme.labelSmall?.copyWith(
+            fontSize: 11,
+            letterSpacing: -0.3,
             fontWeight: FontWeight.w500,
             color: AppColors.lightOnSurface.withAlpha(180),
           );
@@ -301,17 +316,32 @@ class AppTheme {
         ),
       ),
       navigationBarTheme: NavigationBarThemeData(
+        height: 70,
         elevation: 0,
         backgroundColor: AppColors.darkSurfaceContainer,
         indicatorColor: AppColors.darkPrimaryContainer,
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+        iconTheme: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return const IconThemeData(size: 24, color: AppColors.darkPrimary);
+          }
+          return IconThemeData(
+            size: 24,
+            color: AppColors.darkOnSurface.withAlpha(180),
+          );
+        }),
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
             return textTheme.labelSmall?.copyWith(
+              fontSize: 11,
+              letterSpacing: -0.3,
               fontWeight: FontWeight.w700,
               color: AppColors.darkPrimary,
             );
           }
           return textTheme.labelSmall?.copyWith(
+            fontSize: 11,
+            letterSpacing: -0.3,
             fontWeight: FontWeight.w500,
             color: AppColors.darkOnSurface.withAlpha(180),
           );

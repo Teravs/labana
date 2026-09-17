@@ -769,17 +769,19 @@ class _ProductFormSheetState extends State<ProductFormSheet> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Expanded(
-                            flex: 3,
+                            flex: 1,
                             child: TextFormField(
                               controller: _sellingPriceController,
+                              enabled: !_isSubmitting,
                               keyboardType: TextInputType.number,
                               inputFormatters: [
                                 FilteringTextInputFormatter.digitsOnly,
                               ],
                               decoration: const InputDecoration(
                                 labelText: 'Harga Jual (Rp)',
-                                hintText: 'Contoh: 5000',
-                                prefixText: 'Rp',
+                                hintText: '5000',
+                                prefixText: 'Rp ',
+                                isDense: true,
                               ),
                               onChanged: (_) => setState(() {}),
                               validator: (val) {
@@ -794,23 +796,34 @@ class _ProductFormSheetState extends State<ProductFormSheet> {
                               },
                             ),
                           ),
-                          const SizedBox(width: 12),
+                          const SizedBox(width: 10),
                           Expanded(
-                            flex: 2,
+                            flex: 1,
                             child: InkWell(
                               onTap: _pickEffectiveDate,
                               borderRadius: BorderRadius.circular(8),
                               child: InputDecorator(
                                 decoration: const InputDecoration(
-                                  labelText: 'Tanggal Efektif',
-                                  suffixIcon: Icon(
-                                    Icons.calendar_today,
-                                    size: 18,
+                                  labelText: 'Tgl Efektif',
+                                  isDense: true,
+                                  suffixIconConstraints: BoxConstraints(
+                                    minWidth: 32,
+                                    minHeight: 32,
+                                  ),
+                                  suffixIcon: Padding(
+                                    padding: EdgeInsets.only(right: 8),
+                                    child: Icon(
+                                      Icons.calendar_today_outlined,
+                                      size: 16,
+                                    ),
                                   ),
                                 ),
                                 child: Text(
                                   _effectiveDate,
                                   style: theme.textTheme.bodyMedium,
+                                  maxLines: 1,
+                                  softWrap: false,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                             ),
@@ -957,6 +970,7 @@ class _ProductFormSheetState extends State<ProductFormSheet> {
             if (entry.type == RecipeItem.typeIngredient) ...[
               // Dropdown Bahan Mentah
               DropdownButtonFormField<int>(
+                isExpanded: true,
                 initialValue: entry.ingredientId,
                 decoration: const InputDecoration(
                   labelText: 'Pilih Bahan Mentah',
@@ -965,7 +979,7 @@ class _ProductFormSheetState extends State<ProductFormSheet> {
                 items: _activeIngredients.map((ing) {
                   return DropdownMenuItem<int>(
                     value: ing.id,
-                    child: Text(ing.name),
+                    child: Text(ing.name, overflow: TextOverflow.ellipsis),
                   );
                 }).toList(),
                 onChanged: (val) {
@@ -1000,6 +1014,7 @@ class _ProductFormSheetState extends State<ProductFormSheet> {
                   Expanded(
                     flex: 1,
                     child: DropdownButtonFormField<String>(
+                      isExpanded: true,
                       initialValue: entry.unit,
                       decoration: const InputDecoration(
                         labelText: 'Satuan',
@@ -1025,6 +1040,7 @@ class _ProductFormSheetState extends State<ProductFormSheet> {
             ] else if (entry.type == RecipeItem.typeProcessed) ...[
               // Dropdown Bahan Olahan
               DropdownButtonFormField<int>(
+                isExpanded: true,
                 initialValue: entry.processedIngredientId,
                 decoration: const InputDecoration(
                   labelText: 'Pilih Bahan Olahan',
@@ -1033,7 +1049,7 @@ class _ProductFormSheetState extends State<ProductFormSheet> {
                 items: _activeProcessed.map((pi) {
                   return DropdownMenuItem<int>(
                     value: pi.id,
-                    child: Text(pi.name),
+                    child: Text(pi.name, overflow: TextOverflow.ellipsis),
                   );
                 }).toList(),
                 onChanged: (val) {
@@ -1070,6 +1086,7 @@ class _ProductFormSheetState extends State<ProductFormSheet> {
                   Expanded(
                     flex: 1,
                     child: DropdownButtonFormField<String>(
+                      isExpanded: true,
                       initialValue: entry.unit,
                       decoration: const InputDecoration(
                         labelText: 'Satuan',

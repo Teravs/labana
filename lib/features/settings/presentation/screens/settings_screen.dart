@@ -134,17 +134,18 @@ class SettingsScreen extends StatelessWidget {
                         width: 52,
                         height: 52,
                         decoration: BoxDecoration(
-                          color: colorScheme.primary,
                           borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: colorScheme.outlineVariant.withAlpha(80),
+                          ),
                         ),
-                        child: const Center(
-                          child: Text(
-                            'L',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 28,
-                              fontWeight: FontWeight.bold,
-                            ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(13),
+                          child: Image.asset(
+                            AppConstants.logoIconPath,
+                            width: 52,
+                            height: 52,
+                            fit: BoxFit.cover,
                           ),
                         ),
                       ),

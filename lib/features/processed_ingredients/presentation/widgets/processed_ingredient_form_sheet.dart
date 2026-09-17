@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../../core/utils/currency_formatter.dart';
+import '../../../../core/utils/unit_converter.dart';
 import '../../../ingredients/data/ingredient_price_repository.dart';
 import '../../../ingredients/data/ingredient_repository.dart';
 import '../../../ingredients/models/ingredient.dart';
@@ -250,11 +251,12 @@ class _ProcessedIngredientFormSheetState
           } else {
             // Default 1 komponen bahan mentah awal jika belum ada
             if (rawList.isNotEmpty) {
+              final firstId = rawList.first.id;
               _components.add(
                 _ComponentFormEntry(
                   type: ProcessedComponent.typeIngredient,
-                  ingredientId: rawList.first.id,
-                  unit: 'g',
+                  ingredientId: firstId,
+                  unit: _getDefaultUnitForIngredient(firstId),
                 ),
               );
             } else if (validCandidates.isNotEmpty) {
@@ -281,6 +283,29 @@ class _ProcessedIngredientFormSheetState
     }
   }
 
+  String _getDefaultUnitForIngredient(int? ingredientId) {
+    if (ingredientId == null) return 'g';
+    final prices = _pricesByIngredient[ingredientId];
+    if (prices != null && prices.isNotEmpty) {
+      return prices.first.baseUnit;
+    }
+    return 'g';
+  }
+
+  List<MapEntry<String, String>> _getCompatibleUnitsForIngredient(
+    int? ingredientId,
+  ) {
+    if (ingredientId == null) return _componentUnits;
+    final prices = _pricesByIngredient[ingredientId];
+    String baseUnit = 'g';
+    if (prices != null && prices.isNotEmpty) {
+      baseUnit = prices.first.baseUnit;
+    }
+    return _componentUnits
+        .where((u) => UnitConverter.isCompatible(u.key, baseUnit))
+        .toList();
+  }
+
   void _addIngredientComponent() {
     if (_availableRawIngredients.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -293,12 +318,13 @@ class _ProcessedIngredientFormSheetState
       return;
     }
 
+    final firstId = _availableRawIngredients.first.id;
     setState(() {
       _components.add(
         _ComponentFormEntry(
           type: ProcessedComponent.typeIngredient,
-          ingredientId: _availableRawIngredients.first.id,
-          unit: 'g',
+          ingredientId: firstId,
+          unit: _getDefaultUnitForIngredient(firstId),
         ),
       );
     });
@@ -905,7 +931,7 @@ class _ProcessedIngredientFormSheetState
                 items: _availableRawIngredients.map((ing) {
                   return DropdownMenuItem<int>(
                     value: ing.id,
-                    child: Text(ing.name),
+                    child: Text(ing.name, overflow: TextOverflow.ellipsis),
                   );
                 }).toList(),
                 onChanged: _isSaving
@@ -913,6 +939,14 @@ class _ProcessedIngredientFormSheetState
                     : (val) {
                         setState(() {
                           entry.ingredientId = val;
+                          if (val != null) {
+                            final compatible = _getCompatibleUnitsForIngredient(
+                              val,
+                            );
+                            if (!compatible.any((u) => u.key == entry.unit)) {
+                              entry.unit = _getDefaultUnitForIngredient(val);
+                            }
+                          }
                         });
                       },
                 validator: (val) {
@@ -958,29 +992,45 @@ class _ProcessedIngredientFormSheetState
                     ),
                   ),
                   const SizedBox(width: 10),
-                  Expanded(
-                    flex: 2,
-                    child: DropdownButtonFormField<String>(
-                      isExpanded: true,
-                      initialValue: entry.unit,
-                      decoration: const InputDecoration(
-                        labelText: 'Satuan',
-                        isDense: true,
-                      ),
-                      items: _componentUnits.map((u) {
-                        return DropdownMenuItem(
-                          value: u.key,
-                          child: Text(u.value),
-                        );
-                      }).toList(),
-                      onChanged: _isSaving
-                          ? null
-                          : (newUnit) {
-                              if (newUnit != null) {
-                                setState(() => entry.unit = newUnit);
-                              }
-                            },
-                    ),
+                  Builder(
+                    builder: (context) {
+                      final compatibleUnits = _getCompatibleUnitsForIngredient(
+                        entry.ingredientId,
+                      );
+                      final hasCurrentUnit = compatibleUnits.any(
+                        (u) => u.key == entry.unit,
+                      );
+                      final currentVal = hasCurrentUnit
+                          ? entry.unit
+                          : (compatibleUnits.isNotEmpty
+                                ? compatibleUnits.first.key
+                                : entry.unit);
+
+                      return Expanded(
+                        flex: 2,
+                        child: DropdownButtonFormField<String>(
+                          isExpanded: true,
+                          initialValue: currentVal,
+                          decoration: const InputDecoration(
+                            labelText: 'Satuan',
+                            isDense: true,
+                          ),
+                          items: compatibleUnits.map((u) {
+                            return DropdownMenuItem(
+                              value: u.key,
+                              child: Text(u.value),
+                            );
+                          }).toList(),
+                          onChanged: _isSaving
+                              ? null
+                              : (newUnit) {
+                                  if (newUnit != null) {
+                                    setState(() => entry.unit = newUnit);
+                                  }
+                                },
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),
@@ -998,6 +1048,7 @@ class _ProcessedIngredientFormSheetState
                     value: proc.id,
                     child: Text(
                       '${proc.name} (${proc.formattedResultQuantity} ${proc.resultUnit})',
+                      overflow: TextOverflow.ellipsis,
                     ),
                   );
                 }).toList(),

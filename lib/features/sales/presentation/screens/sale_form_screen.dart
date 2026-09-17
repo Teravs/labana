@@ -503,7 +503,7 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
                           child: Column(
                             children: [
                               Icon(
-                                Icons.add_shopping_cart_rounded,
+                                Icons.shopping_bag_outlined,
                                 size: 36,
                                 color: colorScheme.onSurfaceVariant.withAlpha(
                                   120,
@@ -553,12 +553,18 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
-                              Text(
-                                CurrencyFormatter.formatRupiah(
-                                  totals.totalAmount,
-                                ),
-                                style: theme.textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.w700,
+                              const SizedBox(width: 8),
+                              Flexible(
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  alignment: Alignment.centerRight,
+                                  child: Text(
+                                    CurrencyFormatter.formatRupiah(
+                                      totals.totalAmount,
+                                    ),
+                                    style: theme.textTheme.titleMedium
+                                        ?.copyWith(fontWeight: FontWeight.w700),
+                                  ),
                                 ),
                               ),
                             ],
@@ -573,11 +579,20 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
                                   color: colorScheme.onSurfaceVariant,
                                 ),
                               ),
-                              Text(
-                                CurrencyFormatter.formatRupiah(totals.totalHpp),
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  color: colorScheme.onSurfaceVariant,
-                                  fontWeight: FontWeight.w600,
+                              const SizedBox(width: 8),
+                              Flexible(
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  alignment: Alignment.centerRight,
+                                  child: Text(
+                                    CurrencyFormatter.formatRupiah(
+                                      totals.totalHpp,
+                                    ),
+                                    style: theme.textTheme.bodyMedium?.copyWith(
+                                      color: colorScheme.onSurfaceVariant,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
                                 ),
                               ),
                             ],
@@ -594,15 +609,23 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
-                              Text(
-                                CurrencyFormatter.formatRupiah(
-                                  totals.totalProfit,
-                                ),
-                                style: theme.textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                  color: totals.totalProfit >= 0
-                                      ? AppColors.primary
-                                      : AppColors.error,
+                              const SizedBox(width: 8),
+                              Flexible(
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  alignment: Alignment.centerRight,
+                                  child: Text(
+                                    CurrencyFormatter.formatRupiah(
+                                      totals.totalProfit,
+                                    ),
+                                    style: theme.textTheme.titleMedium
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.w700,
+                                          color: totals.totalProfit >= 0
+                                              ? AppColors.primary
+                                              : AppColors.error,
+                                        ),
+                                  ),
                                 ),
                               ),
                             ],
