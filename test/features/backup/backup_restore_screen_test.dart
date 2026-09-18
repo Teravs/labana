@@ -231,5 +231,36 @@ void main() {
         expect(find.text('Pemulihan Berhasil!'), findsNothing);
       },
     );
+
+    testWidgets(
+      '7. Menekan tombol download mengunduh berkas ke folder Download dan memunculkan notifikasi',
+      (tester) async {
+        // Buat backup valid terlebih dahulu
+        await tester.runAsync(
+          () => service.createBackup(customName: 'Backup-To-Download'),
+        );
+
+        await tester.pumpWidget(createWidgetUnderTest());
+        await tester.pump();
+
+        expect(find.byIcon(Icons.file_download_outlined), findsOneWidget);
+
+        // Tekan tombol download
+        await tester.tap(find.byIcon(Icons.file_download_outlined));
+        await settleAsync(
+          tester,
+          condition: () => find
+              .textContaining('berhasil diunduh ke folder Download')
+              .evaluate()
+              .isNotEmpty,
+        );
+
+        expect(fakeFileManager.downloadCalled, isTrue);
+        expect(
+          find.textContaining('berhasil diunduh ke folder Download'),
+          findsOneWidget,
+        );
+      },
+    );
   });
 }

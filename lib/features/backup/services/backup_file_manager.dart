@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -25,6 +26,10 @@ abstract class BackupFileManager {
 
   /// Membagikan berkas cadangan melalui system share sheet via share_plus.
   Future<bool> shareBackup(String filePath, {String? subject});
+
+  /// Mengunduh / menyalin berkas cadangan ke folder Download publik perangkat.
+  /// Mengembalikan path absolut berkas yang berhasil disimpan, atau null jika dibatalkan oleh pengguna.
+  Future<String?> downloadBackupToDownloads(String filePath);
 }
 
 /// Implementasi produksi BackupFileManager menggunakan path_provider dan share_plus.
@@ -132,6 +137,86 @@ class AppBackupFileManager implements BackupFileManager {
 
     return result.status != ShareResultStatus.unavailable;
   }
+
+  @override
+  Future<String?> downloadBackupToDownloads(String filePath) async {
+    final sourceFile = File(filePath);
+    if (!await sourceFile.exists()) {
+      throw const FileSystemException(
+        'Berkas cadangan sumber tidak ditemukan.',
+      );
+    }
+
+    final originalName = p.basenameWithoutExtension(filePath);
+    final ext = p.extension(filePath).isNotEmpty
+        ? p.extension(filePath)
+        : '.db';
+
+    // 1. Coba simpan langsung ke folder Download publik perangkat
+    Directory? targetDir;
+    if (Platform.isAndroid) {
+      final publicDownload = Directory('/storage/emulated/0/Download');
+      if (await publicDownload.exists()) {
+        targetDir = publicDownload;
+      }
+    }
+
+    if (targetDir == null) {
+      try {
+        targetDir = await getDownloadsDirectory();
+      } catch (_) {}
+    }
+
+    if (targetDir != null) {
+      try {
+        if (!await targetDir.exists()) {
+          await targetDir.create(recursive: true);
+        }
+
+        var candidatePath = p.join(targetDir.path, '$originalName$ext');
+        var candidateFile = File(candidatePath);
+        var counter = 2;
+        while (await candidateFile.exists()) {
+          candidatePath = p.join(targetDir.path, '$originalName-$counter$ext');
+          candidateFile = File(candidatePath);
+          counter++;
+        }
+
+        await sourceFile.copy(candidatePath);
+        return candidatePath;
+      } catch (_) {
+        // Jika gagal direct copy karena Scoped Storage Android, lanjut ke fallback SAF
+      }
+    }
+
+    // 2. Fallback SAF via FilePicker.platform.saveFile
+    final cleanExt = ext.replaceFirst('.', '');
+    final allowedExts = cleanExt.isNotEmpty ? [cleanExt] : ['db'];
+    try {
+      final bytes = await sourceFile.readAsBytes();
+      final savedPath = await FilePicker.platform.saveFile(
+        dialogTitle: 'Unduh Berkas ke Folder Download',
+        fileName: '$originalName$ext',
+        bytes: bytes,
+        type: FileType.custom,
+        allowedExtensions: allowedExts,
+      );
+      return savedPath;
+    } catch (_) {
+      try {
+        final bytes = await sourceFile.readAsBytes();
+        final savedPath = await FilePicker.platform.saveFile(
+          dialogTitle: 'Unduh Cadangan ke Folder Download',
+          fileName: '$originalName$ext',
+          bytes: bytes,
+          type: FileType.any,
+        );
+        return savedPath;
+      } catch (e) {
+        throw FileSystemException('Gagal mengunduh berkas cadangan: $e');
+      }
+    }
+  }
 }
 
 /// Implementasi fake untuk keperluan unit dan widget testing.
@@ -140,6 +225,8 @@ class FakeBackupFileManager implements BackupFileManager {
   final Directory tempDirectory;
   bool shareCalled = false;
   String? lastSharedPath;
+  bool downloadCalled = false;
+  String? lastDownloadedPath;
 
   FakeBackupFileManager({Directory? tempDir})
     : tempDirectory =
@@ -226,5 +313,23 @@ class FakeBackupFileManager implements BackupFileManager {
     shareCalled = true;
     lastSharedPath = filePath;
     return true;
+  }
+
+  @override
+  Future<String?> downloadBackupToDownloads(String filePath) async {
+    downloadCalled = true;
+    final sourceFile = File(filePath);
+    final downloadsDir = Directory(p.join(tempDirectory.path, 'downloads'));
+    if (!downloadsDir.existsSync()) {
+      downloadsDir.createSync(recursive: true);
+    }
+    final targetPath = p.join(downloadsDir.path, p.basename(filePath));
+    if (sourceFile.existsSync()) {
+      sourceFile.copySync(targetPath);
+    } else {
+      File(targetPath).writeAsStringSync('fake backup data');
+    }
+    lastDownloadedPath = targetPath;
+    return targetPath;
   }
 }

@@ -82,6 +82,11 @@ class DatabaseBackupService {
     return await _filePicker.pickDatabaseFile();
   }
 
+  /// Mengunduh / menyalin berkas cadangan ke folder Download publik perangkat.
+  Future<String?> downloadBackup(String filePath) async {
+    return await _fileManager.downloadBackupToDownloads(filePath);
+  }
+
   /// Memvalidasi berkas cadangan secara menyeluruh:
   /// 1. Eksistensi dan ukuran berkas (> 100 bytes).
   /// 2. 16-byte magic header SQLite.

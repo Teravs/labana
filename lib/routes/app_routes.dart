@@ -12,6 +12,7 @@ import '../features/sales/presentation/screens/sale_detail_screen.dart';
 import '../features/sales/presentation/screens/sale_form_screen.dart';
 import '../features/sales/presentation/screens/sales_screen.dart';
 import '../features/backup/presentation/screens/backup_restore_screen.dart';
+import '../features/settings/presentation/screens/data_retention_screen.dart';
 import '../features/settings/presentation/screens/settings_screen.dart';
 import '../features/shell/presentation/screens/app_shell.dart';
 
@@ -32,6 +33,7 @@ class AppRoutes {
   static const String reports = '/reports';
   static const String settings = '/settings';
   static const String backupRestore = '/settings/backup';
+  static const String dataRetention = '/settings/retention';
 
   // Processed ingredients & products
   static const String processedIngredients = '/processed-ingredients';
@@ -190,6 +192,14 @@ class AppRouter {
                     parentNavigatorKey: _rootNavigatorKey,
                     builder: (BuildContext context, GoRouterState state) {
                       return const BackupRestoreScreen();
+                    },
+                  ),
+                  GoRoute(
+                    path: 'retention',
+                    name: 'data-retention',
+                    parentNavigatorKey: _rootNavigatorKey,
+                    builder: (BuildContext context, GoRouterState state) {
+                      return const DataRetentionScreen();
                     },
                   ),
                 ],

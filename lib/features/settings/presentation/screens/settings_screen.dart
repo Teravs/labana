@@ -3,7 +3,6 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/theme_controller.dart';
-import '../../../../core/utils/app_feedback.dart';
 import '../../../../core/widgets/app_section_title.dart';
 import '../../../../routes/app_routes.dart';
 
@@ -115,10 +114,10 @@ class SettingsScreen extends StatelessWidget {
                   leading: const Icon(Icons.auto_delete_outlined),
                   title: const Text('Retensi Data'),
                   subtitle: const Text(
-                    'Batas waktu penyimpanan arsip transaksi',
+                    'Unduh laporan & pembersihan transaksi bulanan',
                   ),
                   trailing: const Icon(Icons.chevron_right_rounded),
-                  onTap: () => AppFeedback.showFeatureNotice(context),
+                  onTap: () => context.push(AppRoutes.dataRetention),
                 ),
               ),
               const SizedBox(height: 24),

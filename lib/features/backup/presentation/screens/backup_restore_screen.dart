@@ -373,6 +373,43 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
     }
   }
 
+  /// Mengunduh / menyalin berkas cadangan ke folder Download publik perangkat.
+  Future<void> _handleDownloadBackup(BackupFileInfo backup) async {
+    if (_isActionRunning) return;
+    setState(() => _isActionRunning = true);
+
+    try {
+      final savedPath = await _backupService.downloadBackup(backup.filePath);
+      if (!mounted) return;
+
+      if (savedPath != null && savedPath.isNotEmpty) {
+        final fileName = p.basename(savedPath);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: const Color(0xFF006C4C),
+            content: Text(
+              'Berkas "$fileName" berhasil diunduh ke folder Download.',
+            ),
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: Theme.of(context).colorScheme.error,
+            content: Text('Gagal mengunduh berkas: $e'),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isActionRunning = false);
+      }
+    }
+  }
+
   /// Menghapus berkas cadangan lokal dengan dialog konfirmasi.
   Future<void> _handleDeleteBackup(BackupFileInfo backup) async {
     final confirmed = await showDialog<bool>(
@@ -629,10 +666,22 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
                                 children: [
                                   IconButton(
                                     icon: const Icon(
+                                      Icons.file_download_outlined,
+                                      size: 20,
+                                    ),
+                                    tooltip: 'Unduh ke Download',
+                                    visualDensity: VisualDensity.compact,
+                                    onPressed: _isActionRunning
+                                        ? null
+                                        : () => _handleDownloadBackup(backup),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(
                                       Icons.share_outlined,
                                       size: 20,
                                     ),
                                     tooltip: 'Bagikan',
+                                    visualDensity: VisualDensity.compact,
                                     onPressed: _isActionRunning
                                         ? null
                                         : () => _handleShareBackup(backup),
@@ -643,7 +692,9 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
                                       size: 20,
                                     ),
                                     onSelected: (action) {
-                                      if (action == 'restore') {
+                                      if (action == 'download') {
+                                        _handleDownloadBackup(backup);
+                                      } else if (action == 'restore') {
                                         _confirmAndRestore(
                                           File(backup.filePath),
                                           isExternal: false,
@@ -653,6 +704,19 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
                                       }
                                     },
                                     itemBuilder: (ctx) => [
+                                      const PopupMenuItem(
+                                        value: 'download',
+                                        child: Row(
+                                          children: [
+                                            Icon(
+                                              Icons.file_download_outlined,
+                                              size: 18,
+                                            ),
+                                            SizedBox(width: 10),
+                                            Text('Unduh ke Download'),
+                                          ],
+                                        ),
+                                      ),
                                       const PopupMenuItem(
                                         value: 'restore',
                                         child: Row(

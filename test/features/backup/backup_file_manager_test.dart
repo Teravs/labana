@@ -127,5 +127,20 @@ void main() {
       expect(fakeManager.shareCalled, isTrue);
       expect(fakeManager.lastSharedPath, f.path);
     });
+
+    test(
+      '7. downloadBackupToDownloads menyalin berkas ke folder downloads',
+      () async {
+        final f = File(p.join(tempDir.path, 'download_test.db'));
+        await f.writeAsString('download me');
+
+        final savedPath = await fakeManager.downloadBackupToDownloads(f.path);
+        expect(savedPath, isNotNull);
+        expect(fakeManager.downloadCalled, isTrue);
+        expect(fakeManager.lastDownloadedPath, savedPath);
+        expect(File(savedPath!).existsSync(), isTrue);
+        expect(p.basename(savedPath), 'download_test.db');
+      },
+    );
   });
 }
