@@ -12,6 +12,7 @@ import '../features/sales/presentation/screens/sale_detail_screen.dart';
 import '../features/sales/presentation/screens/sale_form_screen.dart';
 import '../features/sales/presentation/screens/sales_screen.dart';
 import '../features/backup/presentation/screens/backup_restore_screen.dart';
+import '../features/settings/presentation/screens/business_profile_screen.dart';
 import '../features/settings/presentation/screens/data_retention_screen.dart';
 import '../features/settings/presentation/screens/settings_screen.dart';
 import '../features/shell/presentation/screens/app_shell.dart';
@@ -32,6 +33,7 @@ class AppRoutes {
   static const String saleEdit = '/sales/:id/edit';
   static const String reports = '/reports';
   static const String settings = '/settings';
+  static const String businessProfile = '/settings/profile';
   static const String backupRestore = '/settings/backup';
   static const String dataRetention = '/settings/retention';
 
@@ -186,6 +188,14 @@ class AppRouter {
                   return const SettingsScreen();
                 },
                 routes: [
+                  GoRoute(
+                    path: 'profile',
+                    name: 'business-profile',
+                    parentNavigatorKey: _rootNavigatorKey,
+                    builder: (BuildContext context, GoRouterState state) {
+                      return const BusinessProfileScreen();
+                    },
+                  ),
                   GoRoute(
                     path: 'backup',
                     name: 'backup-restore',

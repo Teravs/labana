@@ -38,7 +38,7 @@ class DataRetentionService {
   })  : _dbHelper = dbHelper ?? DatabaseHelper.instance,
         _reportRepository =
             reportRepository ?? ReportRepository(dbHelper: dbHelper),
-        _pdfService = pdfService ?? const ReportPdfService(),
+        _pdfService = pdfService ?? ReportPdfService(),
         _fileManager = fileManager ?? const AppBackupFileManager(),
         _backupService = backupService ??
             DatabaseBackupService(

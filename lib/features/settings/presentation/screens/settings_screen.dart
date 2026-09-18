@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -5,6 +7,8 @@ import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/theme_controller.dart';
 import '../../../../core/widgets/app_section_title.dart';
 import '../../../../routes/app_routes.dart';
+import '../../data/app_settings_repository.dart';
+import '../../models/business_profile.dart';
 
 /// Halaman Pengaturan dengan konfigurasi tema, placeholder data/arsip, dan informasi aplikasi.
 class SettingsScreen extends StatelessWidget {
@@ -82,7 +86,20 @@ class SettingsScreen extends StatelessWidget {
               ),
               const SizedBox(height: 24),
 
-              // SECTION 2: DATA
+              // SECTION 2: IDENTITAS USAHA
+              const AppSectionTitle(title: 'Identitas Usaha'),
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.storefront_outlined),
+                  title: const Text('Profil Toko / Usaha'),
+                  subtitle: const Text('Atur nama toko, slogan, dan logo'),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => context.push(AppRoutes.businessProfile),
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // SECTION 3: DATA
               const AppSectionTitle(title: 'Data'),
               Card(
                 child: Column(
@@ -107,7 +124,7 @@ class SettingsScreen extends StatelessWidget {
               ),
               const SizedBox(height: 24),
 
-              // SECTION 3: ARSIP & PEMBERSIHAN
+              // SECTION 4: ARSIP & PEMBERSIHAN
               const AppSectionTitle(title: 'Arsip & Pembersihan'),
               Card(
                 child: ListTile(
@@ -122,62 +139,80 @@ class SettingsScreen extends StatelessWidget {
               ),
               const SizedBox(height: 24),
 
-              // SECTION 4: TENTANG
+              // SECTION 5: TENTANG
               const AppSectionTitle(title: 'Tentang'),
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(20),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 52,
-                        height: 52,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(
-                            color: colorScheme.outlineVariant.withAlpha(80),
-                          ),
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(13),
-                          child: Image.asset(
-                            AppConstants.logoIconPath,
+                  child: ValueListenableBuilder<BusinessProfile>(
+                    valueListenable:
+                        AppSettingsRepository.businessProfileNotifier,
+                    builder: (context, profile, _) {
+                      Widget logoWidget;
+                      if (profile.hasCustomLogo) {
+                        logoWidget = Image.file(
+                          File(profile.logoPath!),
+                          width: 52,
+                          height: 52,
+                          fit: BoxFit.cover,
+                        );
+                      } else {
+                        logoWidget = Image.asset(
+                          AppConstants.logoIconPath,
+                          width: 52,
+                          height: 52,
+                          fit: BoxFit.cover,
+                        );
+                      }
+
+                      return Row(
+                        children: [
+                          Container(
                             width: 52,
                             height: 52,
-                            fit: BoxFit.cover,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: colorScheme.outlineVariant.withAlpha(80),
+                              ),
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(13),
+                              child: logoWidget,
+                            ),
                           ),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              AppConstants.appName,
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w700,
-                              ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  profile.name,
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  profile.tagline,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: colorScheme.onSurface.withAlpha(170),
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  'Versi ${AppConstants.appVersion}',
+                                  style: theme.textTheme.labelSmall?.copyWith(
+                                    color: colorScheme.primary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
                             ),
-                            const SizedBox(height: 2),
-                            Text(
-                              AppConstants.appTagline,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: colorScheme.onSurface.withAlpha(170),
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              'Versi ${AppConstants.appVersion}',
-                              style: theme.textTheme.labelSmall?.copyWith(
-                                color: colorScheme.primary,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+                          ),
+                        ],
+                      );
+                    },
                   ),
                 ),
               ),

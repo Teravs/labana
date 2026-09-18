@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
+import '../../settings/models/business_profile.dart';
 import '../models/report_models.dart';
 import 'report_date_helper.dart';
 
@@ -16,11 +17,34 @@ import 'report_date_helper.dart';
 class PdfReportGenerator {
   const PdfReportGenerator();
 
+  static String _cleanAscii(String text) {
+    return text
+        .replaceAll('–', '-')
+        .replaceAll('—', '-')
+        .replaceAll('•', '-')
+        .replaceAll('’', "'")
+        .replaceAll('‘', "'")
+        .replaceAll('“', '"')
+        .replaceAll('”', '"')
+        .replaceAll(RegExp(r'[^\x00-\x7F]'), '');
+  }
+
   /// Menghasilkan byte binary PDF dari [ReportData].
-  Future<Uint8List> generateReportPdf(ReportData data) async {
+  Future<Uint8List> generateReportPdf(
+    ReportData data, {
+    BusinessProfile? profile,
+    Uint8List? logoBytes,
+  }) async {
+    final businessName = (profile?.name.trim().isNotEmpty == true)
+        ? profile!.name.trim()
+        : 'Labana';
+    final businessTagline = (profile?.tagline.trim().isNotEmpty == true)
+        ? profile!.tagline.trim()
+        : 'Kelola Modal, Pahami Laba.';
+
     final pdf = pw.Document(
-      title: 'Laporan Penjualan Labana - ${data.startDate}',
-      author: 'Labana',
+      title: 'Laporan Penjualan ${_cleanAscii(businessName)} - ${data.startDate}',
+      author: _cleanAscii(businessName),
     );
 
     // Font standar built-in PDF (100% offline, 0 bytes download)
@@ -45,6 +69,10 @@ class PdfReportGenerator {
       referenceDate,
     ).replaceAll('–', '-').replaceAll('—', '-').replaceAll('•', '-');
 
+    final logoImage = (logoBytes != null && logoBytes.isNotEmpty)
+        ? pw.MemoryImage(logoBytes)
+        : null;
+
     pdf.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
@@ -64,7 +92,7 @@ class PdfReportGenerator {
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
                   pw.Text(
-                    'LABANA - Laporan Penjualan (${data.periodType.label})',
+                    '${_cleanAscii(businessName.toUpperCase())} - Laporan Penjualan (${data.periodType.label})',
                     style: pw.TextStyle(
                       font: fontRegular,
                       fontSize: 8,
@@ -97,25 +125,43 @@ class PdfReportGenerator {
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
-                pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                pw.Row(
+                  crossAxisAlignment: pw.CrossAxisAlignment.center,
                   children: [
-                    pw.Text(
-                      'LABANA',
-                      style: pw.TextStyle(
-                        font: fontBold,
-                        fontSize: 20,
-                        color: primaryEmerald,
+                    if (logoImage != null) ...[
+                      pw.Container(
+                        width: 38,
+                        height: 38,
+                        margin: const pw.EdgeInsets.only(right: 10),
+                        decoration: pw.BoxDecoration(
+                          borderRadius: pw.BorderRadius.circular(6),
+                        ),
+                        child: pw.Image(logoImage, fit: pw.BoxFit.cover),
                       ),
-                    ),
-                    pw.SizedBox(height: 2),
-                    pw.Text(
-                      'Kelola Modal, Pahami Laba.',
-                      style: pw.TextStyle(
-                        font: fontOblique,
-                        fontSize: 9,
-                        color: textMuted,
-                      ),
+                    ],
+                    pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text(
+                          _cleanAscii(businessName.toUpperCase()),
+                          style: pw.TextStyle(
+                            font: fontBold,
+                            fontSize: 18,
+                            color: primaryEmerald,
+                          ),
+                        ),
+                        if (businessTagline.isNotEmpty) ...[
+                          pw.SizedBox(height: 2),
+                          pw.Text(
+                            _cleanAscii(businessTagline),
+                            style: pw.TextStyle(
+                              font: fontOblique,
+                              fontSize: 9,
+                              color: textMuted,
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ],
                 ),
@@ -158,7 +204,9 @@ class PdfReportGenerator {
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children: [
                 pw.Text(
-                  'Labana - Kelola Modal, Pahami Laba.',
+                  businessTagline.isNotEmpty
+                      ? '${_cleanAscii(businessName)} - ${_cleanAscii(businessTagline)}'
+                      : _cleanAscii(businessName),
                   style: pw.TextStyle(
                     font: fontRegular,
                     fontSize: 8,

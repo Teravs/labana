@@ -35,7 +35,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
   void initState() {
     super.initState();
     _reportRepo = widget.reportRepo ?? ReportRepository();
-    _pdfService = widget.pdfService ?? const ReportPdfService();
+    _pdfService = widget.pdfService ?? ReportPdfService();
     _loadReportData();
     SaleRepository.salesChangeNotifier.addListener(_onSalesChanged);
   }

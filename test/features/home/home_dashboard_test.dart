@@ -6,6 +6,8 @@ import 'package:labana/features/home/presentation/screens/home_screen.dart';
 import 'package:labana/features/sales/data/sale_repository.dart';
 import 'package:labana/features/sales/models/sale.dart';
 import 'package:labana/features/sales/models/sale_item.dart';
+import 'package:labana/features/settings/data/app_settings_repository.dart';
+import 'package:labana/features/settings/models/business_profile.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() {
@@ -890,6 +892,45 @@ void main() {
       expect(find.text('Rp2.500'), findsOneWidget);
       expect(find.text('Rp9.500'), findsWidgets);
       expect(find.text('Thai Tea'), findsWidgets);
+    });
+
+    testWidgets('Dashboard menampilkan nama usaha dan slogan kustom secara reaktif', (
+      WidgetTester tester,
+    ) async {
+      AppSettingsRepository.businessProfileNotifier.value =
+          const BusinessProfile(
+        name: 'Dapur Nusantara',
+        tagline: 'Cita Rasa Asli Indonesia',
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(home: HomeScreen(saleRepo: saleRepo)),
+      );
+      await settleAsync(tester);
+
+      expect(find.text('Dapur Nusantara'), findsWidgets);
+      expect(find.text('Selamat datang di Dapur Nusantara'), findsOneWidget);
+      expect(find.text('Cita Rasa Asli Indonesia'), findsOneWidget);
+
+      // Ubah profil secara dinamis
+      AppSettingsRepository.businessProfileNotifier.value =
+          const BusinessProfile(
+        name: 'Kedai Kopi Berkah',
+        tagline: 'Kopi Mantap Harga Sahabat',
+      );
+      await tester.pump();
+
+      expect(find.text('Kedai Kopi Berkah'), findsWidgets);
+      expect(find.text('Selamat datang di Kedai Kopi Berkah'), findsOneWidget);
+      expect(find.text('Kopi Mantap Harga Sahabat'), findsOneWidget);
+
+      // Reset kembali ke default
+      AppSettingsRepository.businessProfileNotifier.value =
+          const BusinessProfile();
+      await tester.pump();
+
+      expect(find.text('Selamat datang di Labana'), findsOneWidget);
+      expect(find.text('Kelola Modal, Pahami Laba.'), findsOneWidget);
     });
   });
 }

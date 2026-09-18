@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -7,6 +9,8 @@ import '../../../../core/widgets/app_section_title.dart';
 import '../../../../core/widgets/app_stat_card.dart';
 import '../../../../routes/app_routes.dart';
 import '../../../sales/data/sale_repository.dart';
+import '../../../settings/data/app_settings_repository.dart';
+import '../../../settings/models/business_profile.dart';
 import '../../models/dashboard_summary.dart';
 
 /// Halaman Home / Dashboard Labana dengan data agregasi SQLite riil hari ini.
@@ -111,21 +115,47 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(6),
-              child: Image.asset(
-                AppConstants.logoIconPath,
-                width: 28,
-                height: 28,
-                fit: BoxFit.cover,
-              ),
-            ),
-            const SizedBox(width: 10),
-            Text(AppConstants.appName),
-          ],
+        title: ValueListenableBuilder<BusinessProfile>(
+          valueListenable: AppSettingsRepository.businessProfileNotifier,
+          builder: (context, profile, _) {
+            final hasCustom = profile.hasCustomLogo && profile.logoPath != null;
+            final logoFile = hasCustom ? File(profile.logoPath!) : null;
+
+            return Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(6),
+                  child: hasCustom && logoFile != null && logoFile.existsSync()
+                      ? Image.file(
+                          logoFile,
+                          width: 28,
+                          height: 28,
+                          fit: BoxFit.cover,
+                          errorBuilder: (ctx, err, stack) => Image.asset(
+                            AppConstants.logoIconPath,
+                            width: 28,
+                            height: 28,
+                            fit: BoxFit.cover,
+                          ),
+                        )
+                      : Image.asset(
+                          AppConstants.logoIconPath,
+                          width: 28,
+                          height: 28,
+                          fit: BoxFit.cover,
+                        ),
+                ),
+                const SizedBox(width: 10),
+                Flexible(
+                  child: Text(
+                    profile.name.isNotEmpty ? profile.name : AppConstants.appName,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            );
+          },
         ),
       ),
       body: SafeArea(
@@ -242,19 +272,39 @@ class _HomeScreenState extends State<HomeScreen> {
                       const SizedBox(height: 12),
                       const Divider(height: 1),
                       const SizedBox(height: 10),
-                      Text(
-                        'Selamat datang di ${AppConstants.appName}',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: colorScheme.primary,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        AppConstants.appTagline,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: colorScheme.onSurface.withAlpha(160),
-                        ),
+                      ValueListenableBuilder<BusinessProfile>(
+                        valueListenable:
+                            AppSettingsRepository.businessProfileNotifier,
+                        builder: (context, profile, _) {
+                          final businessName = profile.name.isNotEmpty
+                              ? profile.name
+                              : AppConstants.appName;
+                          final tagline = profile.tagline.isNotEmpty
+                              ? profile.tagline
+                              : AppConstants.appTagline;
+
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Selamat datang di $businessName',
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: colorScheme.primary,
+                                ),
+                              ),
+                              if (tagline.isNotEmpty) ...[
+                                const SizedBox(height: 2),
+                                Text(
+                                  tagline,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: colorScheme.onSurface.withAlpha(160),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          );
+                        },
                       ),
                     ],
                   ),

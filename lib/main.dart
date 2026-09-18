@@ -3,10 +3,13 @@ import 'package:flutter/material.dart';
 import 'core/constants/app_constants.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_controller.dart';
+import 'features/settings/data/app_settings_repository.dart';
 import 'routes/app_routes.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Inisialisasi profil bisnis dan pengaturan dari SQLite
+  await AppSettingsRepository().getBusinessProfile();
   runApp(const LabanaApp());
 }
 

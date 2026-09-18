@@ -7,6 +7,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_empty_state.dart';
 import '../../../../core/widgets/app_section_title.dart';
 import '../../../../main.dart';
+import '../../../settings/data/app_settings_repository.dart';
 import '../../models/backup_models.dart';
 import '../../services/database_backup_service.dart';
 
@@ -263,6 +264,7 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
       await _backupService.restoreDatabase(
         backupFile: file,
         onStateRefresh: () {
+          AppSettingsRepository().getBusinessProfile();
           appReloadNotifier.value++;
         },
       );
