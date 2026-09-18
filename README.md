@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/logo_with_text.png" alt="Labana Logo" width="380" />
+  <img src="assets/logo.png" alt="Labana Logo" width="160" />
 </p>
 
 <p align="center">
@@ -12,7 +12,7 @@
   <img src="https://img.shields.io/badge/Dart-3.11.1+-0175C2?style=for-the-badge&logo=dart&logoColor=white" alt="Dart" />
   <img src="https://img.shields.io/badge/Database-SQLite-003B57?style=for-the-badge&logo=sqlite&logoColor=white" alt="SQLite" />
   <img src="https://img.shields.io/badge/Architecture-Offline--First-006C4C?style=for-the-badge" alt="Offline-First" />
-  <img src="https://img.shields.io/badge/Tests-291%20Passed-brightgreen?style=for-the-badge" alt="Tests Passed" />
+  <img src="https://img.shields.io/badge/Tests-306%20Passed-brightgreen?style=for-the-badge" alt="Tests Passed" />
 </p>
 
 ---
@@ -143,6 +143,13 @@ lib/
 
 ---
 
+## 📖 Buku Panduan Pengguna (User Guide)
+
+Untuk panduan alur operasional, cara perhitungan HPP, peracikan resep, kasir, ekspor PDF, hingga manajemen cadangan data, silakan baca dokumentasi lengkap di:
+👉 **[Buku Panduan Pengguna (PANDUAN_PENGGUNA.md)](PANDUAN_PENGGUNA.md)**
+
+---
+
 ## 🧪 Pengujian & Kualitas Kode
 
 Proyek ini dilengkapi dengan cakupan pengujian menyeluruh (Unit Test, Calculation Test, Widget Test, dan End-to-End Integration Test):
@@ -154,11 +161,11 @@ dart format .
 # 2. Jalankan analisis statis
 flutter analyze
 
-# 3. Jalankan seluruh test suite (291 pengujian)
+# 3. Jalankan seluruh test suite (306 pengujian)
 flutter test --reporter expanded
 ```
 
-Status Pengujian: **291 / 291 Tests Passed (100% Lulus)**.
+Status Pengujian: **306 / 306 Tests Passed (100% Lulus)**.
 
 ---
 
