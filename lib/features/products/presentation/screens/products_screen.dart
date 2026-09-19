@@ -135,7 +135,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
 
     if (created == true) {
       _showMessage('Produk berhasil dibuat.');
-      _loadProducts();
+      await _loadProducts();
     }
   }
 

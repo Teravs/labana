@@ -79,9 +79,10 @@ class ProductPriceRepository {
     DatabaseExecutor? executor,
   }) async {
     final exec = executor ?? await _db;
-    final date =
-        effectiveDate ??
-        DateTime.now().toUtc().toIso8601String().substring(0, 10);
+    final now = DateTime.now();
+    final todayStr =
+        '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+    final date = effectiveDate ?? todayStr;
 
     final results = await exec.query(
       TableNames.productPrices,

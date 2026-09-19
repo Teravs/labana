@@ -165,10 +165,13 @@ class _ProductFormSheetState extends State<ProductFormSheet> {
           ? '${widget.initialPrice!.sellingPrice}'
           : '',
     );
+    final now = DateTime.now();
+    final todayStr =
+        '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
     _effectiveDate =
         widget.initialRecipeVersion?.effectiveFrom ??
         widget.initialPrice?.effectiveFrom ??
-        DateTime.now().toUtc().toIso8601String().substring(0, 10);
+        todayStr;
 
     // Inisialisasi komponen yang sudah ada jika edit
     if (widget.initialItems != null && widget.initialItems!.isNotEmpty) {
@@ -218,12 +221,33 @@ class _ProductFormSheetState extends State<ProductFormSheet> {
         }
       }
 
+      if (widget.initialItems != null) {
+        for (final item in widget.initialItems!) {
+          if (item.ingredientId != null &&
+              !pricesMap.containsKey(item.ingredientId!)) {
+            pricesMap[item.ingredientId!] = await _priceRepo.getPrices(
+              item.ingredientId!,
+            );
+          }
+        }
+      }
+
       final procMap = <int, ProcessedIngredient>{};
       final procCompMap = <int, List<ProcessedComponent>>{};
       for (final pi in processed) {
         if (pi.id != null) {
           procMap[pi.id!] = pi;
-          procCompMap[pi.id!] = await _processedRepo.getComponents(pi.id!);
+          final comps = await _processedRepo.getComponents(pi.id!);
+          procCompMap[pi.id!] = comps;
+
+          for (final c in comps) {
+            if (c.ingredientId != null &&
+                !pricesMap.containsKey(c.ingredientId!)) {
+              pricesMap[c.ingredientId!] = await _priceRepo.getPrices(
+                c.ingredientId!,
+              );
+            }
+          }
         }
       }
 
@@ -521,6 +545,9 @@ class _ProductFormSheetState extends State<ProductFormSheet> {
         hppTotal: _calcResult.hppTotal,
       );
       if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
         Navigator.of(context).pop(true);
       }
     } catch (e) {

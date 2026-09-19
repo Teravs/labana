@@ -86,10 +86,20 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     _loadData();
   }
 
-  Future<void> _loadData() async {
-    setState(() => _isLoading = true);
+  Future<void> _loadData({bool isInitial = false}) async {
+    if (isInitial || _product == null) {
+      setState(() => _isLoading = true);
+    }
     try {
-      final product = await _productRepo.getById(widget.productId);
+      final results = await Future.wait([
+        _productRepo.getById(widget.productId),
+        _recipeVersionRepo.getActiveVersion(widget.productId),
+        _recipeVersionRepo.getByProductId(widget.productId),
+        _productPriceRepo.getByProductId(widget.productId),
+        _productPriceRepo.getEffectivePrice(widget.productId),
+      ]);
+
+      final product = results[0] as Product?;
       if (product == null) {
         if (mounted) {
           setState(() {
@@ -100,55 +110,95 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         return;
       }
 
-      final activeVersion = await _recipeVersionRepo.getActiveVersion(
-        widget.productId,
-      );
-      final allVersions = await _recipeVersionRepo.getByProductId(
-        widget.productId,
-      );
-      final priceHistory = await _productPriceRepo.getByProductId(
-        widget.productId,
-      );
-      final currentPrice = await _productPriceRepo.getEffectivePrice(
-        widget.productId,
-      );
+      var activeVersion = results[1] as RecipeVersion?;
+      var allVersions = results[2] as List<RecipeVersion>;
+      final priceHistory = results[3] as List<ProductPrice>;
+      final currentPrice = results[4] as ProductPrice?;
 
       List<RecipeItem> activeItems = [];
       RecipeCalculationResult? calcResult;
 
       if (activeVersion != null && activeVersion.id != null) {
+        var currentActive = activeVersion;
         activeItems = await _recipeItemRepo.getByRecipeVersionId(
-          activeVersion.id!,
+          currentActive.id!,
         );
 
-        // Siapkan data lookup untuk kalkulasi HPP
+        // Siapkan data lookup untuk kalkulasi HPP secara efisien
         final pricesMap = <int, List<IngredientPrice>>{};
+        final procMap = <int, ProcessedIngredient>{};
+        final procCompMap = <int, List<ProcessedComponent>>{};
+        final ingPriceFutures = <Future>[];
+        final procIds = <int>{};
+
         for (final item in activeItems) {
           if (item.isIngredient && item.ingredientId != null) {
-            pricesMap[item.ingredientId!] = await _ingredientPriceRepo
-                .getPrices(item.ingredientId!);
+            ingPriceFutures.add(
+              _ingredientPriceRepo.getPrices(item.ingredientId!).then((prices) {
+                pricesMap[item.ingredientId!] = prices;
+              }),
+            );
+          } else if (item.isProcessed && item.processedIngredientId != null) {
+            procIds.add(item.processedIngredientId!);
           }
         }
 
-        final procMap = <int, ProcessedIngredient>{};
-        final procCompMap = <int, List<ProcessedComponent>>{};
-        for (final item in activeItems) {
-          if (item.isProcessed && item.processedIngredientId != null) {
-            final p = await _processedRepo.getById(item.processedIngredientId!);
-            if (p != null) {
-              procMap[p.id!] = p;
-              procCompMap[p.id!] = await _processedRepo.getComponents(p.id!);
+        if (procIds.isNotEmpty) {
+          final allProcessed = await _processedRepo.getAll();
+          for (final pi in allProcessed) {
+            if (pi.id != null) {
+              procMap[pi.id!] = pi;
+              final comps = await _processedRepo.getComponents(pi.id!);
+              procCompMap[pi.id!] = comps;
+              for (final c in comps) {
+                if (c.ingredientId != null &&
+                    !pricesMap.containsKey(c.ingredientId!)) {
+                  ingPriceFutures.add(
+                    _ingredientPriceRepo
+                        .getPrices(c.ingredientId!)
+                        .then((prices) {
+                          pricesMap[c.ingredientId!] = prices;
+                        }),
+                  );
+                }
+              }
             }
           }
         }
 
+        if (ingPriceFutures.isNotEmpty) {
+          await Future.wait(ingPriceFutures);
+        }
+
+        final now = DateTime.now();
+        final todayStr =
+            '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+        final calcDate = currentActive.effectiveFrom.compareTo(todayStr) > 0
+            ? currentActive.effectiveFrom
+            : todayStr;
+
         calcResult = RecipeCalculator.calculateRecipeCost(
           items: activeItems,
-          calculationDate: activeVersion.effectiveFrom,
+          calculationDate: calcDate,
           ingredientPricesMap: pricesMap,
           allProcessedIngredients: procMap,
           allProcessedComponents: procCompMap,
         );
+
+        if (calcResult.hppTotal > 0 &&
+            !calcResult.hasUnresolvedCost &&
+            currentActive.hppTotal != calcResult.hppTotal) {
+          await _recipeVersionRepo.updateHppTotal(
+            currentActive.id!,
+            calcResult.hppTotal,
+          );
+          currentActive = currentActive.copyWith(hppTotal: calcResult.hppTotal);
+          activeVersion = currentActive;
+          allVersions = allVersions.map((v) {
+            if (v.id == currentActive.id) return currentActive;
+            return v;
+          }).toList();
+        }
       }
 
       if (mounted) {
@@ -207,7 +257,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
     if (updated == true) {
       _showFeedback('Perubahan produk berhasil disimpan.');
-      _loadData();
+      await _loadData();
     }
   }
 
@@ -252,7 +302,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       try {
         await _productRepo.deactivate(_product!.id!);
         _showFeedback('Produk dinonaktifkan.');
-        _loadData();
+        await _loadData();
       } catch (e) {
         _showFeedback('Gagal menonaktifkan: $e', isError: true);
       }
@@ -264,7 +314,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     try {
       await _productRepo.activate(_product!.id!);
       _showFeedback('Produk berhasil diaktifkan kembali.');
-      _loadData();
+      await _loadData();
     } catch (e) {
       _showFeedback(e.toString().replaceAll('Exception: ', ''), isError: true);
     }
@@ -324,7 +374,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: Text('Memuat data produk...'))
           : _errorMessage != null
           ? Center(child: Text(_errorMessage!))
           : _buildContent(context),
@@ -337,7 +387,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     final product = _product!;
 
     final sellingPrice = _currentPrice?.sellingPrice ?? 0;
-    final hpp = _activeVersion?.hppTotal ?? _calcResult?.hppTotal ?? 0;
+    final hpp = _calcResult?.hppTotal ?? _activeVersion?.hppTotal ?? 0;
     final profit = sellingPrice - hpp;
     final isBelowHpp = sellingPrice > 0 && sellingPrice < hpp;
 

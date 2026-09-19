@@ -479,7 +479,17 @@ class ProductRepository {
         if (activeVersion == null) {
           throw const ValidationException('Versi resep aktif tidak ditemukan.');
         }
-        finalVersion = activeVersion;
+        if (hppTotal != null && activeVersion.hppTotal != hppTotal) {
+          await txn.update(
+            TableNames.recipeVersions,
+            {'hpp_total': hppTotal},
+            where: 'id = ?',
+            whereArgs: [activeVersion.id],
+          );
+          finalVersion = activeVersion.copyWith(hppTotal: hppTotal);
+        } else {
+          finalVersion = activeVersion;
+        }
         finalItems = currentItems;
       }
 

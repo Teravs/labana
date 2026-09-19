@@ -135,4 +135,19 @@ class RecipeVersionRepository {
     final id = await exec.insert(TableNames.recipeVersions, map);
     return version.copyWith(id: id);
   }
+
+  /// Memperbarui HPP total untuk versi resep tertentu.
+  Future<int> updateHppTotal(
+    int id,
+    int hppTotal, {
+    DatabaseExecutor? executor,
+  }) async {
+    final exec = executor ?? await _db;
+    return await exec.update(
+      TableNames.recipeVersions,
+      {'hpp_total': hppTotal},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
 }
