@@ -121,11 +121,17 @@ class _IngredientPriceFormSheetState extends State<IngredientPriceFormSheet> {
 
   /// Menghitung preview konversi dan harga dasar untuk umpan balik instan
   Widget _buildLivePreview(ThemeData theme) {
-    final qty = double.tryParse(_qtyController.text.trim()) ?? 0.0;
+    final qty = double.tryParse(
+          _qtyController.text.trim().replaceAll(',', '.'),
+        ) ??
+        0.0;
     final price =
         int.tryParse(_priceController.text.replaceAll('.', '').trim()) ?? 0;
     final packageQty = _selectedUnit == UnitConverter.unitPack
-        ? (double.tryParse(_packageQtyController.text.trim()) ?? 0.0)
+        ? (double.tryParse(
+              _packageQtyController.text.trim().replaceAll(',', '.'),
+            ) ??
+            0.0)
         : null;
 
     if (qty <= 0 || price <= 0) {
@@ -203,11 +209,19 @@ class _IngredientPriceFormSheetState extends State<IngredientPriceFormSheet> {
   Future<void> _handleSave() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final qty = double.parse(_qtyController.text.trim());
+    final qty = double.tryParse(
+      _qtyController.text.trim().replaceAll(',', '.'),
+    );
+    if (qty == null || qty <= 0) return;
+
     final rawPriceStr = _priceController.text.replaceAll('.', '').trim();
-    final price = int.parse(rawPriceStr);
+    final price = int.tryParse(rawPriceStr);
+    if (price == null || price < 0) return;
+
     final packageQty = _selectedUnit == UnitConverter.unitPack
-        ? double.parse(_packageQtyController.text.trim())
+        ? double.tryParse(
+            _packageQtyController.text.trim().replaceAll(',', '.'),
+          )
         : null;
     final effectiveFrom = _formatDateDb(_selectedDate);
 
@@ -313,7 +327,7 @@ class _IngredientPriceFormSheetState extends State<IngredientPriceFormSheet> {
                       ),
                       inputFormatters: [
                         FilteringTextInputFormatter.allow(
-                          RegExp(r'^\d*\.?\d*'),
+                          RegExp(r'^\d*[.,]?\d*'),
                         ),
                       ],
                       enabled: !_isSaving,
@@ -322,7 +336,9 @@ class _IngredientPriceFormSheetState extends State<IngredientPriceFormSheet> {
                         if (value == null || value.trim().isEmpty) {
                           return 'Wajib diisi';
                         }
-                        final numVal = double.tryParse(value.trim());
+                        final numVal = double.tryParse(
+                          value.replaceAll(',', '.').trim(),
+                        );
                         if (numVal == null || numVal <= 0) {
                           return 'Harus > 0';
                         }
@@ -377,7 +393,7 @@ class _IngredientPriceFormSheetState extends State<IngredientPriceFormSheet> {
                     decimal: true,
                   ),
                   inputFormatters: [
-                    FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
+                    FilteringTextInputFormatter.allow(RegExp(r'^\d*[.,]?\d*')),
                   ],
                   enabled: !_isSaving,
                   onChanged: (_) => setState(() {}),
@@ -385,7 +401,9 @@ class _IngredientPriceFormSheetState extends State<IngredientPriceFormSheet> {
                     if (value == null || value.trim().isEmpty) {
                       return 'Isi per pack wajib diisi';
                     }
-                    final numVal = double.tryParse(value.trim());
+                    final numVal = double.tryParse(
+                      value.replaceAll(',', '.').trim(),
+                    );
                     if (numVal == null || numVal <= 0) {
                       return 'Isi per pack harus > 0';
                     }

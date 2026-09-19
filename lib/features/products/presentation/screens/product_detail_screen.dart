@@ -366,10 +366,20 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               ],
             )
           else if (_product != null && _product!.isInactive)
-            TextButton.icon(
-              onPressed: _activateProduct,
-              icon: const Icon(Icons.replay_rounded, size: 18),
-              label: const Text('Aktifkan'),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  tooltip: 'Edit Produk & Resep',
+                  icon: const Icon(Icons.edit_outlined),
+                  onPressed: _openEditSheet,
+                ),
+                TextButton.icon(
+                  onPressed: _activateProduct,
+                  icon: const Icon(Icons.replay_rounded, size: 18),
+                  label: const Text('Aktifkan'),
+                ),
+              ],
             ),
         ],
       ),

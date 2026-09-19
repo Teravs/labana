@@ -212,12 +212,23 @@ class SaleItemTile extends StatelessWidget {
                           : null,
                       tooltip: 'Kurang kuantitas',
                     ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      child: Text(
-                        item.formattedQuantity,
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w700,
+                    InkWell(
+                      borderRadius: BorderRadius.circular(6),
+                      onTap: onQuantityChanged == null
+                          ? null
+                          : () => _showEditQuantityDialog(context),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        child: Text(
+                          item.formattedQuantity,
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            decoration: TextDecoration.underline,
+                            decorationStyle: TextDecorationStyle.dotted,
+                          ),
                         ),
                       ),
                     ),
@@ -263,5 +274,51 @@ class SaleItemTile extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _showEditQuantityDialog(BuildContext context) async {
+    final controller = TextEditingController(
+      text: item.quantity % 1 == 0
+          ? item.quantity.toInt().toString()
+          : item.quantity.toString(),
+    );
+
+    final newQty = await showDialog<double>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Ubah Kuantitas "${item.productName}"'),
+        content: TextField(
+          controller: controller,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          autofocus: true,
+          decoration: const InputDecoration(
+            labelText: 'Jumlah Porsi',
+            hintText: 'Misal: 10',
+            suffixText: 'porsi',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final parsed = double.tryParse(
+                controller.text.trim().replaceAll(',', '.'),
+              );
+              if (parsed != null && parsed > 0) {
+                Navigator.of(ctx).pop(parsed);
+              }
+            },
+            child: const Text('Simpan'),
+          ),
+        ],
+      ),
+    );
+
+    if (newQty != null && newQty > 0) {
+      onQuantityChanged?.call(newQty);
+    }
   }
 }

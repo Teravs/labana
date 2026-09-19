@@ -218,6 +218,46 @@ class _ProcessedIngredientFormSheetState
         }
       }
 
+      // Proteksi bahan nonaktif: jika form edit membawa komponen yang saat ini nonaktif,
+      // muat bahan tersebut dan sertakan dengan label (Nonaktif) agar DropdownButtonFormField tidak crash.
+      if (widget.initialComponents != null) {
+        for (final comp in widget.initialComponents!) {
+          if (comp.isIngredient &&
+              comp.ingredientId != null &&
+              !namesMap.containsKey(comp.ingredientId)) {
+            final inactiveIng = await _ingredientRepo.getById(comp.ingredientId!);
+            if (inactiveIng != null) {
+              final displayIng = inactiveIng.copyWith(
+                name: '${inactiveIng.name} (Nonaktif)',
+              );
+              rawList.add(displayIng);
+              namesMap[displayIng.id!] = displayIng.name;
+              final prices = await _priceRepo.getPrices(displayIng.id!);
+              priceMap[displayIng.id!] = prices;
+            }
+          } else if (comp.isProcessed &&
+              comp.childProcessedId != null &&
+              !procMap.containsKey(comp.childProcessedId)) {
+            final inactiveProc = await _processedRepo.getById(comp.childProcessedId!);
+            if (inactiveProc != null) {
+              final displayProc = ProcessedIngredient(
+                id: inactiveProc.id,
+                name: '${inactiveProc.name} (Nonaktif)',
+                resultQuantity: inactiveProc.resultQuantity,
+                resultUnit: inactiveProc.resultUnit,
+                status: inactiveProc.status,
+                createdAt: inactiveProc.createdAt,
+                updatedAt: inactiveProc.updatedAt,
+              );
+              validCandidates.add(displayProc);
+              procMap[displayProc.id!] = displayProc;
+              final comps = await _processedRepo.getComponents(displayProc.id!);
+              procCompMap[displayProc.id!] = comps;
+            }
+          }
+        }
+      }
+
       if (mounted) {
         setState(() {
           _availableRawIngredients = rawList;
@@ -383,7 +423,10 @@ class _ProcessedIngredientFormSheetState
 
   ProcessedIngredientCostResult _calculateLiveCost() {
     final nowStr = DateTime.now().toIso8601String().substring(0, 10);
-    final resultQty = double.tryParse(_resultQtyController.text.trim()) ?? 1.0;
+    final resultQty = double.tryParse(
+          _resultQtyController.text.trim().replaceAll(',', '.'),
+        ) ??
+        1.0;
 
     final dummyProcessed = ProcessedIngredient(
       id: widget.initialProcessedIngredient?.id ?? 0,
@@ -396,7 +439,9 @@ class _ProcessedIngredientFormSheetState
     for (int i = 0; i < _components.length; i++) {
       final entry = _components[i];
       if (entry.type == ProcessedComponent.typeIngredient) {
-        final qty = double.tryParse(entry.quantityController.text.trim());
+        final qty = double.tryParse(
+          entry.quantityController.text.trim().replaceAll(',', '.'),
+        );
         parsedComponents.add(
           ProcessedComponent(
             id: i,
@@ -410,7 +455,9 @@ class _ProcessedIngredientFormSheetState
           ),
         );
       } else if (entry.type == ProcessedComponent.typeProcessed) {
-        final qty = double.tryParse(entry.quantityController.text.trim());
+        final qty = double.tryParse(
+          entry.quantityController.text.trim().replaceAll(',', '.'),
+        );
         final child = entry.childProcessedId != null
             ? _processedIngredientsById[entry.childProcessedId!]
             : null;
@@ -462,7 +509,9 @@ class _ProcessedIngredientFormSheetState
       return;
     }
 
-    final resultQty = double.tryParse(_resultQtyController.text.trim());
+    final resultQty = double.tryParse(
+      _resultQtyController.text.trim().replaceAll(',', '.'),
+    );
     if (resultQty == null || resultQty <= 0) {
       setState(() {
         _errorMessage = 'Jumlah hasil olahan harus lebih besar dari 0.';
@@ -481,7 +530,9 @@ class _ProcessedIngredientFormSheetState
           });
           return;
         }
-        final qty = double.tryParse(entry.quantityController.text.trim());
+        final qty = double.tryParse(
+          entry.quantityController.text.trim().replaceAll(',', '.'),
+        );
         if (qty == null || qty <= 0) {
           setState(() {
             _errorMessage =
@@ -504,7 +555,9 @@ class _ProcessedIngredientFormSheetState
           });
           return;
         }
-        final qty = double.tryParse(entry.quantityController.text.trim());
+        final qty = double.tryParse(
+          entry.quantityController.text.trim().replaceAll(',', '.'),
+        );
         if (qty == null || qty <= 0) {
           setState(() {
             _errorMessage =
@@ -689,7 +742,7 @@ class _ProcessedIngredientFormSheetState
                             ),
                             inputFormatters: [
                               FilteringTextInputFormatter.allow(
-                                RegExp(r'^\d*\.?\d*'),
+                                RegExp(r'^\d*[.,]?\d*'),
                               ),
                             ],
                             decoration: const InputDecoration(
@@ -701,7 +754,9 @@ class _ProcessedIngredientFormSheetState
                               if (value == null || value.trim().isEmpty) {
                                 return 'Wajib diisi';
                               }
-                              final numVal = double.tryParse(value);
+                              final numVal = double.tryParse(
+                                value.replaceAll(',', '.'),
+                              );
                               if (numVal == null || numVal <= 0) {
                                 return 'Harus > 0';
                               }
@@ -969,7 +1024,7 @@ class _ProcessedIngredientFormSheetState
                       ),
                       inputFormatters: [
                         FilteringTextInputFormatter.allow(
-                          RegExp(r'^\d*\.?\d*'),
+                          RegExp(r'^\d*[.,]?\d*'),
                         ),
                       ],
                       decoration: const InputDecoration(
@@ -981,7 +1036,7 @@ class _ProcessedIngredientFormSheetState
                         if (val == null || val.trim().isEmpty) {
                           return 'Isi jumlah';
                         }
-                        final numVal = double.tryParse(val);
+                        final numVal = double.tryParse(val.replaceAll(',', '.'));
                         if (numVal == null || numVal <= 0) {
                           return 'Harus > 0';
                         }
@@ -1085,7 +1140,7 @@ class _ProcessedIngredientFormSheetState
                       ),
                       inputFormatters: [
                         FilteringTextInputFormatter.allow(
-                          RegExp(r'^\d*\.?\d*'),
+                          RegExp(r'^\d*[.,]?\d*'),
                         ),
                       ],
                       decoration: const InputDecoration(
@@ -1097,7 +1152,7 @@ class _ProcessedIngredientFormSheetState
                         if (val == null || val.trim().isEmpty) {
                           return 'Isi jumlah';
                         }
-                        final numVal = double.tryParse(val);
+                        final numVal = double.tryParse(val.replaceAll(',', '.'));
                         if (numVal == null || numVal <= 0) {
                           return 'Harus > 0';
                         }

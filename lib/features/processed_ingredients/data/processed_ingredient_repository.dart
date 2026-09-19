@@ -330,6 +330,21 @@ class ProcessedIngredientRepository {
       );
     }
 
+    // Periksa apakah masih dirujuk dalam resep produk
+    final referencingRecipes = await db.query(
+      TableNames.recipeItems,
+      columns: ['id'],
+      where: 'processed_ingredient_id = ?',
+      whereArgs: [id],
+      limit: 1,
+    );
+
+    if (referencingRecipes.isNotEmpty) {
+      throw const ValidationException(
+        'Bahan olahan ini masih digunakan dalam resep produk dan tidak dapat dihapus.',
+      );
+    }
+
     await db.delete(
       TableNames.processedIngredients,
       where: 'id = ?',
