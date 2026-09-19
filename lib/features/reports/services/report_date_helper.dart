@@ -92,7 +92,7 @@ class ReportDateHelper {
 
     while (!current.isAfter(cleanEnd)) {
       days.add(current);
-      current = current.add(const Duration(days: 1));
+      current = DateTime(current.year, current.month, current.day + 1);
     }
     return days;
   }

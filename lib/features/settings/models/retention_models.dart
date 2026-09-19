@@ -7,6 +7,7 @@ class MonthlyArchiveItem {
   final double totalOmzet;
   final bool isCurrentMonth;
   final bool isDownloaded;
+  final bool needsReDownload;
   final String? downloadedFilePath;
 
   const MonthlyArchiveItem({
@@ -17,8 +18,12 @@ class MonthlyArchiveItem {
     required this.totalOmzet,
     required this.isCurrentMonth,
     required this.isDownloaded,
+    this.needsReDownload = false,
     this.downloadedFilePath,
   });
+
+  /// Status apakah transaksi pada periode ini aman untuk dibersihkan/dihapus.
+  bool get canDelete => !isCurrentMonth && isDownloaded && !needsReDownload;
 
   /// Mengembalikan kunci periode dalam format YYYY-MM (misal: "2026-01").
   String get periodKey =>
@@ -32,6 +37,7 @@ class MonthlyArchiveItem {
     double? totalOmzet,
     bool? isCurrentMonth,
     bool? isDownloaded,
+    bool? needsReDownload,
     String? downloadedFilePath,
   }) {
     return MonthlyArchiveItem(
@@ -42,6 +48,7 @@ class MonthlyArchiveItem {
       totalOmzet: totalOmzet ?? this.totalOmzet,
       isCurrentMonth: isCurrentMonth ?? this.isCurrentMonth,
       isDownloaded: isDownloaded ?? this.isDownloaded,
+      needsReDownload: needsReDownload ?? this.needsReDownload,
       downloadedFilePath: downloadedFilePath ?? this.downloadedFilePath,
     );
   }

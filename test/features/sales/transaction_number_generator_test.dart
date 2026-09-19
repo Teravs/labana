@@ -187,5 +187,48 @@ void main() {
         expect(nextNum, 'TRX-20260915-003');
       },
     );
+
+    test(
+      '6. Sequence > 999 handling: properly sorts 4-digit numbers so 1000 leads to 1001',
+      () async {
+        await setupProductAndRecipe();
+
+        // Simulasikan transaksi ke-999 dan ke-1000 pada hari yang sama
+        await saleRepo.createSaleWithItems(
+          sale: const Sale(
+            transactionNumber: 'TRX-20260915-999',
+            transactionDate: '2026-09-15 10:00:00',
+            totalAmount: 5000,
+            totalHpp: 2000,
+            totalProfit: 3000,
+            createdAt: '',
+            updatedAt: '',
+          ),
+          items: [dummyItem()],
+        );
+
+        // Generator setelah 999 harus menghasilkan 1000
+        final num1000 = await generator.generate('2026-09-15');
+        expect(num1000, 'TRX-20260915-1000');
+
+        // Simpan transaksi 1000
+        await saleRepo.createSaleWithItems(
+          sale: const Sale(
+            transactionNumber: 'TRX-20260915-1000',
+            transactionDate: '2026-09-15 11:00:00',
+            totalAmount: 5000,
+            totalHpp: 2000,
+            totalProfit: 3000,
+            createdAt: '',
+            updatedAt: '',
+          ),
+          items: [dummyItem()],
+        );
+
+        // Generator setelah 1000 harus menghasilkan 1001 (tidak terbalik membaca 999 lagi)
+        final num1001 = await generator.generate('2026-09-15');
+        expect(num1001, 'TRX-20260915-1001');
+      },
+    );
   });
 }

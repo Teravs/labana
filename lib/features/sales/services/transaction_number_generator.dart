@@ -38,7 +38,7 @@ class TransactionNumberGenerator {
       columns: ['transaction_number'],
       where: 'transaction_number LIKE ?',
       whereArgs: ['$prefix%'],
-      orderBy: 'transaction_number DESC',
+      orderBy: 'LENGTH(transaction_number) DESC, transaction_number DESC',
       limit: 1,
     );
 

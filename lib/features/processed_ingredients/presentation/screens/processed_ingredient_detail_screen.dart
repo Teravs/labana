@@ -296,10 +296,20 @@ class _ProcessedIngredientDetailScreenState
               ],
             )
           else
-            IconButton(
-              icon: const Icon(Icons.replay_rounded),
-              tooltip: 'Aktifkan Kembali',
-              onPressed: _activateItem,
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.edit_outlined),
+                  tooltip: 'Edit Resep & Komponen',
+                  onPressed: _openEditForm,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.replay_rounded),
+                  tooltip: 'Aktifkan Kembali',
+                  onPressed: _activateItem,
+                ),
+              ],
             ),
         ],
       ),

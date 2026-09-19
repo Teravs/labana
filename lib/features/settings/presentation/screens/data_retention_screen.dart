@@ -354,7 +354,7 @@ class _DataRetentionScreenState extends State<DataRetentionScreen> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    final canDelete = !item.isCurrentMonth && item.isDownloaded;
+    final canDelete = item.canDelete;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -435,18 +435,24 @@ class _DataRetentionScreenState extends State<DataRetentionScreen> {
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 10),
                       side: BorderSide(
-                        color: item.isDownloaded
-                            ? const Color(0xFF2E7D32)
-                            : colorScheme.primary,
+                        color: item.needsReDownload
+                            ? const Color(0xFFE65100)
+                            : (item.isDownloaded
+                                ? const Color(0xFF2E7D32)
+                                : colorScheme.primary),
                       ),
-                      foregroundColor: item.isDownloaded
-                          ? const Color(0xFF2E7D32)
-                          : colorScheme.primary,
+                      foregroundColor: item.needsReDownload
+                          ? const Color(0xFFE65100)
+                          : (item.isDownloaded
+                              ? const Color(0xFF2E7D32)
+                              : colorScheme.primary),
                     ),
                     icon: Icon(
-                      item.isDownloaded
-                          ? Icons.check_circle_outline_rounded
-                          : Icons.download_rounded,
+                      item.needsReDownload
+                          ? Icons.refresh_rounded
+                          : (item.isDownloaded
+                              ? Icons.check_circle_outline_rounded
+                              : Icons.download_rounded),
                       size: 18,
                     ),
                     label: Text(
@@ -496,6 +502,8 @@ class _DataRetentionScreenState extends State<DataRetentionScreen> {
               Text(
                 item.isCurrentMonth
                     ? 'Bulan berjalan dilindungi demi keutuhan data aktif.'
+                    : item.needsReDownload
+                    ? 'Terdapat pembaruan data transaksi. Unduh ulang laporan sebelum melakukan pembersihan data.'
                     : 'Unduh laporan PDF terlebih dahulu sebelum dapat menghapus transaksi.',
                 style: theme.textTheme.bodySmall?.copyWith(
                   fontSize: 11,
@@ -534,6 +542,35 @@ class _DataRetentionScreenState extends State<DataRetentionScreen> {
               'Bulan Berjalan',
               style: theme.textTheme.labelSmall?.copyWith(
                 color: colorScheme.onPrimaryContainer,
+                fontWeight: FontWeight.w600,
+                fontSize: 11,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (item.needsReDownload) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFF3E0),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.update_rounded,
+              size: 13,
+              color: Color(0xFFE65100),
+            ),
+            const SizedBox(width: 4),
+            Text(
+              'Perlu Unduh Ulang',
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: const Color(0xFFE65100),
                 fontWeight: FontWeight.w600,
                 fontSize: 11,
               ),

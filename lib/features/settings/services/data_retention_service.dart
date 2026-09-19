@@ -70,21 +70,30 @@ class DataRetentionService {
 
     final archives = await db.query(
       TableNames.reportArchives,
-      columns: ['period_start', 'file_path'],
+      columns: ['period_start', 'file_path', 'created_at'],
       where: "report_type = 'monthly'",
+      orderBy: 'created_at DESC, id DESC',
     );
 
     final downloadedMap = <String, String>{};
+    final archiveCreatedAtMap = <String, String>{};
     for (final a in archives) {
       final periodStart = a['period_start'] as String?;
       final filePath = a['file_path'] as String?;
+      final createdAt = a['created_at'] as String?;
       if (periodStart != null && periodStart.length >= 7 && filePath != null) {
         final key = periodStart.substring(0, 7);
-        downloadedMap[key] = filePath;
+        if (!downloadedMap.containsKey(key)) {
+          downloadedMap[key] = filePath;
+          if (createdAt != null) {
+            archiveCreatedAtMap[key] = createdAt;
+          }
+        }
       }
     }
 
-    return results.map((row) {
+    final archiveItems = <MonthlyArchiveItem>[];
+    for (final row in results) {
       final year = (row['year'] as num).toInt();
       final month = (row['month'] as num).toInt();
       final count = (row['transaction_count'] as num).toInt();
@@ -96,18 +105,37 @@ class DataRetentionService {
           : 'Bulan $month';
       final label = '$monthName $year';
       final downloadedPath = downloadedMap[periodKey];
+      final archiveCreatedAt = archiveCreatedAtMap[periodKey];
 
-      return MonthlyArchiveItem(
-        year: year,
-        month: month,
-        monthLabel: label,
-        transactionCount: count,
-        totalOmzet: omzet,
-        isCurrentMonth: isCurrent,
-        isDownloaded: downloadedPath != null,
-        downloadedFilePath: downloadedPath,
+      bool needsReDownload = false;
+      if (downloadedPath != null &&
+          archiveCreatedAt != null &&
+          archiveCreatedAt.isNotEmpty) {
+        final newerSales = await db.rawQuery(
+          'SELECT id FROM ${TableNames.sales} WHERE substr(transaction_date, 1, 7) = ? AND (created_at > ? OR updated_at > ?) LIMIT 1',
+          [periodKey, archiveCreatedAt, archiveCreatedAt],
+        );
+        if (newerSales.isNotEmpty) {
+          needsReDownload = true;
+        }
+      }
+
+      archiveItems.add(
+        MonthlyArchiveItem(
+          year: year,
+          month: month,
+          monthLabel: label,
+          transactionCount: count,
+          totalOmzet: omzet,
+          isCurrentMonth: isCurrent,
+          isDownloaded: downloadedPath != null,
+          needsReDownload: needsReDownload,
+          downloadedFilePath: downloadedPath,
+        ),
       );
-    }).toList();
+    }
+
+    return archiveItems;
   }
 
   /// Mengecek apakah laporan bulanan untuk [year] dan [month] sudah pernah diunduh/diekspor,

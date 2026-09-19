@@ -250,7 +250,66 @@ void main() {
       expect(jan.totalOmzet, 50000);
       expect(jan.isCurrentMonth, isFalse);
       expect(jan.isDownloaded, isTrue);
+      expect(jan.needsReDownload, isFalse);
+      expect(jan.canDelete, isTrue);
       expect(jan.downloadedFilePath, '/storage/reports/Laporan-Labana-Bulanan-2026-01.pdf');
+    });
+
+    test('getMonthlyArchives menandai needsReDownload = true dan canDelete = false jika ada transaksi susulan', () async {
+      await populateMasterData();
+
+      // Transaksi Januari 2026 pertama
+      await insertSale(
+        transactionNumber: 'TRX-20260101-001',
+        date: '2026-01-15',
+        totalAmount: 50000,
+        totalHpp: 16000,
+        totalProfit: 34000,
+      );
+
+      // Arsip dibuat tanggal 2026-02-01 10:00:00
+      await testDb.insert(TableNames.reportArchives, {
+        'report_type': 'monthly',
+        'period_start': '2026-01-01',
+        'period_end': '2026-01-31',
+        'file_name': 'Laporan-Labana-Bulanan-2026-01.pdf',
+        'file_path': '/storage/reports/Laporan-Labana-Bulanan-2026-01.pdf',
+        'created_at': '2026-02-01 10:00:00',
+      });
+
+      // Transaksi susulan Januari 2026 dibuat pada 2026-02-02 (setelah arsip dibuat)
+      final saleId = await testDb.insert(TableNames.sales, {
+        'transaction_number': 'TRX-20260101-002',
+        'transaction_date': '2026-01-20 14:00:00',
+        'payment_method': 'cash',
+        'total_amount': 25000,
+        'total_hpp': 8000,
+        'total_profit': 17000,
+        'created_at': '2026-02-02 12:00:00',
+        'updated_at': '2026-02-02 12:00:00',
+      });
+      await testDb.insert(TableNames.saleItems, {
+        'sale_id': saleId,
+        'product_id': 1,
+        'recipe_version_id': 1,
+        'product_name': 'Kopi Latte',
+        'quantity': 1.0,
+        'selling_price': 25000,
+        'hpp_per_unit': 8000,
+        'subtotal': 25000,
+        'total_hpp': 8000,
+        'total_profit': 17000,
+        'created_at': '2026-02-02 12:00:00',
+      });
+
+      final refDate = DateTime(2026, 3, 1);
+      final archives = await retentionService.getMonthlyArchives(now: refDate);
+
+      expect(archives.length, 1);
+      final jan = archives[0];
+      expect(jan.isDownloaded, isTrue);
+      expect(jan.needsReDownload, isTrue);
+      expect(jan.canDelete, isFalse); // Tombol hapus harus dinonaktifkan
     });
   });
 

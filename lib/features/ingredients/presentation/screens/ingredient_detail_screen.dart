@@ -5,6 +5,7 @@ import '../../data/ingredient_price_repository.dart';
 import '../../data/ingredient_repository.dart';
 import '../../models/ingredient.dart';
 import '../../models/ingredient_price.dart';
+import '../widgets/ingredient_form_sheet.dart';
 import '../widgets/ingredient_price_form_sheet.dart';
 
 /// Halaman detail bahan mentah untuk melihat status, harga aktif, format pembelian, dan riwayat harga.
@@ -131,6 +132,64 @@ class _IngredientDetailScreenState extends State<IngredientDetailScreen> {
     }
   }
 
+  Future<void> _showEditForm() async {
+    if (_ingredient == null) return;
+    final result = await IngredientFormSheet.show(
+      context,
+      initialIngredient: _ingredient,
+      onSave: (newName) async {
+        await _ingredientRepo.update(_ingredient!.id!, newName);
+      },
+    );
+    if (result == true) {
+      _showFeedback('Nama bahan berhasil diperbarui.');
+      await _loadData();
+    }
+  }
+
+  Future<void> _confirmDeactivate() async {
+    if (_ingredient == null) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Nonaktifkan bahan?'),
+        content: Text(
+          'Bahan "${_ingredient!.name}" akan disembunyikan dari daftar bahan aktif.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Nonaktifkan'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      try {
+        await _ingredientRepo.deactivate(_ingredient!.id!);
+        _showFeedback('Bahan dinonaktifkan.');
+        await _loadData();
+      } catch (e) {
+        _showFeedback('Gagal menonaktifkan bahan: $e', isError: true);
+      }
+    }
+  }
+
+  Future<void> _activateIngredient() async {
+    if (_ingredient == null) return;
+    try {
+      await _ingredientRepo.activate(_ingredient!.id!);
+      _showFeedback('Bahan berhasil diaktifkan kembali.');
+      await _loadData();
+    } catch (e) {
+      _showFeedback(e.toString().replaceAll('Exception: ', ''), isError: true);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -165,7 +224,66 @@ class _IngredientDetailScreenState extends State<IngredientDetailScreen> {
     final currentPrice = defaultPrice ?? _prices.firstOrNull;
 
     return Scaffold(
-      appBar: AppBar(title: Text(ingredient.name)),
+      appBar: AppBar(
+        title: Text(ingredient.name),
+        actions: [
+          if (isActive)
+            PopupMenuButton<String>(
+              onSelected: (action) {
+                if (action == 'edit') {
+                  _showEditForm();
+                } else if (action == 'deactivate') {
+                  _confirmDeactivate();
+                }
+              },
+              itemBuilder: (ctx) => [
+                const PopupMenuItem(
+                  value: 'edit',
+                  child: Row(
+                    children: [
+                      Icon(Icons.edit_outlined, size: 18),
+                      SizedBox(width: 8),
+                      Text('Edit Nama'),
+                    ],
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 'deactivate',
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.archive_outlined,
+                        size: 18,
+                        color: colorScheme.error,
+                      ),
+                      SizedBox(width: 8),
+                      Text(
+                        'Nonaktifkan',
+                        style: TextStyle(color: colorScheme.error),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            )
+          else
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  tooltip: 'Edit Nama',
+                  icon: const Icon(Icons.edit_outlined),
+                  onPressed: _showEditForm,
+                ),
+                TextButton.icon(
+                  onPressed: _activateIngredient,
+                  icon: const Icon(Icons.replay_rounded, size: 18),
+                  label: const Text('Aktifkan'),
+                ),
+              ],
+            ),
+        ],
+      ),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: _loadData,
