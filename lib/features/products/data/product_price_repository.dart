@@ -53,6 +53,24 @@ class ProductPriceRepository {
     return price.copyWith(id: id);
   }
 
+  /// Memperbarui nilai harga jual untuk record yang sudah ada (untuk koreksi input di tanggal yang sama).
+  Future<void> updatePrice(
+    int id,
+    int sellingPrice, {
+    DatabaseExecutor? executor,
+  }) async {
+    if (sellingPrice < 0) {
+      throw const ValidationException('Harga jual tidak boleh negatif.');
+    }
+    final exec = executor ?? await _db;
+    await exec.update(
+      TableNames.productPrices,
+      {'selling_price': sellingPrice},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
   /// Mengambil semua riwayat harga jual untuk suatu produk,
   /// diurutkan berdasarkan tanggal efektif terbaru.
   Future<List<ProductPrice>> getByProductId(

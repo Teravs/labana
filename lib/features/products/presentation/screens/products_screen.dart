@@ -53,6 +53,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
 
   bool _isLoading = true;
   String? _errorMessage;
+  int _loadRequestId = 0;
 
   @override
   void initState() {
@@ -71,6 +72,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
   }
 
   Future<void> _loadProducts() async {
+    final currentRequestId = ++_loadRequestId;
     setState(() => _isLoading = true);
     try {
       final items = await _productRepo.getAll(status: _selectedStatus);
@@ -90,7 +92,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
         }
       }
 
-      if (mounted) {
+      if (mounted && currentRequestId == _loadRequestId) {
         setState(() {
           _products = items;
           _activeVersions = activeVersionsMap;
@@ -99,7 +101,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
         });
       }
     } catch (e) {
-      if (mounted) {
+      if (mounted && currentRequestId == _loadRequestId) {
         setState(() {
           _isLoading = false;
           _errorMessage = 'Gagal memuat produk: $e';

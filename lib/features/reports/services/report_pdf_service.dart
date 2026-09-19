@@ -77,15 +77,20 @@ class ReportPdfService {
         );
       }
 
+      final bName =
+          branding.profile.name.isNotEmpty ? branding.profile.name : 'Labana';
+
       // 2. Simpan ke direktori dokumen aplikasi
-      final baseName = AppPdfFileStorage.generateBaseFileName(data);
+      final baseName = AppPdfFileStorage.generateBaseFileName(
+        data,
+        businessName: bName,
+      );
       final savedFile = await _storage.savePdfFile(
         baseName: baseName,
         bytes: bytes,
       );
 
       // 3. Buka menu bagikan sistem operasi
-      final bName = branding.profile.name.isNotEmpty ? branding.profile.name : 'Labana';
       final isShared = await _storage.sharePdfFile(
         savedFile.path,
         subject: subject ?? 'Laporan Penjualan $bName - ${data.startDate}',
@@ -108,7 +113,12 @@ class ReportPdfService {
         profile: branding.profile,
         logoBytes: branding.logoBytes,
       );
-      final baseName = AppPdfFileStorage.generateBaseFileName(data);
+      final bName =
+          branding.profile.name.isNotEmpty ? branding.profile.name : 'Labana';
+      final baseName = AppPdfFileStorage.generateBaseFileName(
+        data,
+        businessName: bName,
+      );
       return await _storage.savePdfFile(baseName: baseName, bytes: bytes);
     } catch (e) {
       throw PdfExportException('Gagal menyimpan laporan PDF: ${e.toString()}');

@@ -238,6 +238,8 @@ CREATE TABLE recipe_items (
 
     other_cost INTEGER,
 
+    label TEXT,
+
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     FOREIGN KEY (recipe_version_id)

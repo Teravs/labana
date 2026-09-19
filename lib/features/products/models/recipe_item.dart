@@ -95,10 +95,6 @@ class RecipeItem {
   }
 
   /// Mengonversi ke Map SQLite untuk penyimpanan.
-  ///
-  /// PENTING: Hanya kolom-kolom tabel `recipe_items` yang disimpan.
-  /// Kolom transient UI (`ingredient_name`, `processed_ingredient_name`, `label`)
-  /// TIDAK dimasukkan ke sini.
   Map<String, dynamic> toMap() {
     final map = <String, dynamic>{
       'recipe_version_id': recipeVersionId,
@@ -110,6 +106,9 @@ class RecipeItem {
       'other_cost': otherCost,
       'created_at': createdAt,
     };
+    if (componentType == typeOther && label != null) {
+      map['label'] = label;
+    }
     if (id != null) {
       map['id'] = id;
     }

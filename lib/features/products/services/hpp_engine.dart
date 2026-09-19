@@ -128,8 +128,8 @@ class HppEngine {
     final processedComponentsMap = <int, List<ProcessedComponent>>{};
 
     if (neededProcessedIds.isNotEmpty) {
-      // Ambil seluruh bahan olahan aktif/tersedia untuk mendukung nested hierarchy
-      final allProcessed = await _processedRepo.getAll();
+      // Ambil seluruh bahan olahan (termasuk nonaktif) untuk mendukung kalkulasi historis
+      final allProcessed = await _processedRepo.getAll(status: null);
       for (final pi in allProcessed) {
         if (pi.id != null) {
           processedMap[pi.id!] = pi;
@@ -284,9 +284,8 @@ class HppEngine {
           continue;
         }
 
-        String baseUnit;
         try {
-          baseUnit = UnitConverter.getBaseUnit(item.unit!);
+          UnitConverter.getBaseUnit(item.unit!);
         } catch (e) {
           hasUnresolvedCost = true;
           final errorMsg = 'Satuan "${item.unit}" tidak dikenali.';
@@ -320,7 +319,7 @@ class HppEngine {
         final resolvedPrice =
             ProcessedIngredientCalculator.resolvePriceForComponent(
               availablePrices: prices,
-              componentUnit: baseUnit,
+              componentUnit: item.unit!,
               calculationDate: calculationDate,
             );
 

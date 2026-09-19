@@ -263,12 +263,51 @@ class IngredientPriceRepository {
   }
 
   /// Menghapus record harga (hanya jika diperlukan untuk koreksi input).
+  /// Jika record yang dihapus adalah format default, otomatis mempromosikan
+  /// harga terbaru yang tersisa sebagai default baru.
   Future<void> deletePrice(int id) async {
-    final db = await _db;
-    await db.delete(
-      TableNames.ingredientPrices,
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    await _dbHelper.transaction((txn) async {
+      // 1. Baca record yang akan dihapus
+      final records = await txn.query(
+        TableNames.ingredientPrices,
+        where: 'id = ?',
+        whereArgs: [id],
+        limit: 1,
+      );
+
+      if (records.isEmpty) return;
+
+      final deletedRecord = records.first;
+      final ingredientId = deletedRecord['ingredient_id'] as int;
+      final wasDefault = (deletedRecord['is_default'] as int?) == 1;
+
+      // 2. Hapus record
+      await txn.delete(
+        TableNames.ingredientPrices,
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+
+      // 3. Jika yang dihapus adalah default, promosikan harga terbaru yang tersisa
+      if (wasDefault) {
+        final remaining = await txn.query(
+          TableNames.ingredientPrices,
+          where: 'ingredient_id = ?',
+          whereArgs: [ingredientId],
+          orderBy: 'effective_from DESC, id DESC',
+          limit: 1,
+        );
+
+        if (remaining.isNotEmpty) {
+          final newDefaultId = remaining.first['id'] as int;
+          await txn.update(
+            TableNames.ingredientPrices,
+            {'is_default': 1},
+            where: 'id = ?',
+            whereArgs: [newDefaultId],
+          );
+        }
+      }
+    });
   }
 }

@@ -511,10 +511,10 @@ class PdfReportGenerator {
     final highestProfit = data.highestProfit;
 
     final topSellingName = topSelling != null
-        ? '${topSelling.productName} (${topSelling.formattedQuantity} terjual)'
+        ? '${_cleanAscii(topSelling.productName)} (${topSelling.formattedQuantity} terjual)'
         : 'Belum ada penjualan';
     final highestProfitName = highestProfit != null
-        ? '${highestProfit.productName} (${highestProfit.formattedProfit})'
+        ? '${_cleanAscii(highestProfit.productName)} (${highestProfit.formattedProfit})'
         : 'Belum ada penjualan';
 
     return pw.Row(
@@ -627,7 +627,7 @@ class PdfReportGenerator {
         final p = products[index];
         return [
           '${index + 1}',
-          p.productName,
+          _cleanAscii(p.productName),
           p.formattedQuantity,
           p.formattedOmzet,
           p.formattedHpp,

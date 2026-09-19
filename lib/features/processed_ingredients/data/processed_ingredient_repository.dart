@@ -30,12 +30,13 @@ class ProcessedIngredientRepository {
   static const List<String> allowedResultUnits = ['g', 'ml', 'pcs'];
 
   /// Mengambil semua bahan olahan berdasarkan [status] ('active' atau 'inactive').
-  Future<List<ProcessedIngredient>> getAll({String status = 'active'}) async {
+  /// Jika [status] bernilai null, mengambil semua tanpa filter status.
+  Future<List<ProcessedIngredient>> getAll({String? status = 'active'}) async {
     final db = await _db;
     final results = await db.query(
       TableNames.processedIngredients,
-      where: 'status = ?',
-      whereArgs: [status],
+      where: status != null ? 'status = ?' : null,
+      whereArgs: status != null ? [status] : null,
       orderBy: 'name COLLATE NOCASE ASC',
     );
 

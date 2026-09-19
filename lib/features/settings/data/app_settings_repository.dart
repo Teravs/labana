@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -16,6 +17,7 @@ class AppSettingsRepository {
   static const String keyBusinessName = 'business_name';
   static const String keyBusinessTagline = 'business_tagline';
   static const String keyBusinessLogoPath = 'business_logo_path';
+  static const String keyBusinessLogoBase64 = 'business_logo_base64';
 
   /// Notifier reaktif global untuk menyebarkan perubahan profil toko ke seluruh UI secara instan.
   static final ValueNotifier<BusinessProfile> businessProfileNotifier =
@@ -68,9 +70,24 @@ class AppSettingsRepository {
     final tagline = map[keyBusinessTagline]?.trim().isNotEmpty == true
         ? map[keyBusinessTagline]!
         : AppConstants.appTagline;
-    final logoPath = map[keyBusinessLogoPath]?.trim().isNotEmpty == true
+    var logoPath = map[keyBusinessLogoPath]?.trim().isNotEmpty == true
         ? map[keyBusinessLogoPath]
         : null;
+
+    // Jika file fisik logo tidak ada (misal pasca restore di HP baru),
+    // rekonstruksi kembali dari string Base64 yang tersimpan di SQLite.
+    final logoBase64 = map[keyBusinessLogoBase64];
+    if (logoBase64 != null && logoBase64.isNotEmpty) {
+      final fileExists = logoPath != null && File(logoPath).existsSync();
+      if (!fileExists) {
+        try {
+          final brandingDir = await _getBrandingDirectory();
+          final restoredFile = File(p.join(brandingDir.path, 'business_logo.png'));
+          await restoredFile.writeAsBytes(base64Decode(logoBase64));
+          logoPath = restoredFile.path;
+        } catch (_) {}
+      }
+    }
 
     final profile = BusinessProfile(
       name: name,
@@ -92,6 +109,7 @@ class AppSettingsRepository {
     final db = await _db;
     final currentProfile = businessProfileNotifier.value;
     String? finalLogoPath = currentProfile.logoPath;
+    String? finalLogoBase64;
 
     if (clearLogo) {
       if (finalLogoPath != null) {
@@ -103,6 +121,7 @@ class AppSettingsRepository {
         }
       }
       finalLogoPath = null;
+      finalLogoBase64 = null;
     } else if (newLogoSourcePath != null && newLogoSourcePath.trim().isNotEmpty) {
       final sourceFile = File(newLogoSourcePath);
       if (await sourceFile.exists()) {
@@ -113,6 +132,16 @@ class AppSettingsRepository {
         final targetPath = p.join(brandingDir.path, 'business_logo$ext');
         await sourceFile.copy(targetPath);
         finalLogoPath = targetPath;
+        try {
+          finalLogoBase64 = base64Encode(await File(targetPath).readAsBytes());
+        } catch (_) {}
+      }
+    } else if (finalLogoPath != null) {
+      final existingFile = File(finalLogoPath);
+      if (await existingFile.exists()) {
+        try {
+          finalLogoBase64 = base64Encode(await existingFile.readAsBytes());
+        } catch (_) {}
       }
     }
 
@@ -144,6 +173,20 @@ class AppSettingsRepository {
           whereArgs: [keyBusinessLogoPath],
         );
       }
+
+      if (finalLogoBase64 != null) {
+        await txn.insert(
+          TableNames.settings,
+          {'key': keyBusinessLogoBase64, 'value': finalLogoBase64},
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
+      } else if (clearLogo) {
+        await txn.delete(
+          TableNames.settings,
+          where: 'key = ?',
+          whereArgs: [keyBusinessLogoBase64],
+        );
+      }
     });
 
     final updatedProfile = BusinessProfile(
@@ -172,8 +215,13 @@ class AppSettingsRepository {
     await db.transaction((txn) async {
       await txn.delete(
         TableNames.settings,
-        where: 'key IN (?, ?, ?)',
-        whereArgs: [keyBusinessName, keyBusinessTagline, keyBusinessLogoPath],
+        where: 'key IN (?, ?, ?, ?)',
+        whereArgs: [
+          keyBusinessName,
+          keyBusinessTagline,
+          keyBusinessLogoPath,
+          keyBusinessLogoBase64,
+        ],
       );
     });
 

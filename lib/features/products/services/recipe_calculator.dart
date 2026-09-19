@@ -175,9 +175,9 @@ class RecipeCalculator {
         );
       }
 
-      String baseUnit;
+      // Validasi bahwa satuan item dikenali sebelum melanjutkan
       try {
-        baseUnit = UnitConverter.getBaseUnit(item.unit!);
+        UnitConverter.getBaseUnit(item.unit!);
       } catch (e) {
         return RecipeItemCostResult(
           item: item,
@@ -191,7 +191,7 @@ class RecipeCalculator {
       final resolvedPrice =
           ProcessedIngredientCalculator.resolvePriceForComponent(
             availablePrices: prices,
-            componentUnit: baseUnit,
+            componentUnit: item.unit!,
             calculationDate: calculationDate,
           );
 

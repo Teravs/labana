@@ -110,18 +110,34 @@ class DataRetentionService {
     }).toList();
   }
 
-  /// Mengecek apakah laporan bulanan untuk [year] dan [month] sudah pernah diunduh/diekspor.
+  /// Mengecek apakah laporan bulanan untuk [year] dan [month] sudah pernah diunduh/diekspor,
+  /// dan memastikan tidak ada transaksi susulan (backdated sales) yang dibuat setelah tanggal unduh.
   Future<bool> isMonthReportDownloaded(int year, int month) async {
     final periodKey = '$year-${month.toString().padLeft(2, '0')}';
     final db = await _dbHelper.database;
     final results = await db.query(
       TableNames.reportArchives,
-      columns: ['id'],
+      columns: ['id', 'created_at'],
       where: "report_type = 'monthly' AND substr(period_start, 1, 7) = ?",
       whereArgs: [periodKey],
+      orderBy: 'created_at DESC, id DESC',
       limit: 1,
     );
-    return results.isNotEmpty;
+    if (results.isEmpty) return false;
+
+    // Verifikasi apakah ada transaksi di periode tersebut yang dibuat atau diperbarui setelah laporan diunduh
+    final archiveCreatedAt = results.first['created_at'] as String?;
+    if (archiveCreatedAt != null && archiveCreatedAt.isNotEmpty) {
+      final newerSales = await db.rawQuery(
+        'SELECT id FROM ${TableNames.sales} WHERE substr(transaction_date, 1, 7) = ? AND (created_at > ? OR updated_at > ?) LIMIT 1',
+        [periodKey, archiveCreatedAt, archiveCreatedAt],
+      );
+      if (newerSales.isNotEmpty) {
+        return false;
+      }
+    }
+
+    return true;
   }
 
   /// Menghasilkan file PDF laporan penjualan bulanan, menyimpannya ke folder Download / berkas,
@@ -154,12 +170,20 @@ class DataRetentionService {
     }
 
     // 3. Catat ke tabel report_archives
+    final periodKey = '$year-${month.toString().padLeft(2, '0')}';
     final range = ReportDateHelper.getMonthRange(year, month);
     final startDate = ReportDateHelper.formatDate(range.start);
     final endDate = ReportDateHelper.formatDate(range.end);
     final fileName = p.basename(finalFile.path);
 
     final db = await _dbHelper.database;
+    // Hapus arsip lama untuk periode yang sama agar tidak menumpuk duplikat record saat unduh ulang
+    await db.delete(
+      TableNames.reportArchives,
+      where: "report_type = 'monthly' AND substr(period_start, 1, 7) = ?",
+      whereArgs: [periodKey],
+    );
+
     await db.insert(TableNames.reportArchives, {
       'report_type': 'monthly',
       'period_start': startDate,

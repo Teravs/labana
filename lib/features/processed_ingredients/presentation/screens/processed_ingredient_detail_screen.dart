@@ -91,7 +91,7 @@ class _ProcessedIngredientDetailScreenState
 
       // Muat data bahan olahan aktif hanya jika terdapat komponen turunan
       if (components.any((c) => c.isProcessed)) {
-        final allProcessed = await _processedRepo.getAll(status: 'active');
+        final allProcessed = await _processedRepo.getAll(status: null);
         for (final p in allProcessed) {
           if (p.id != null && p.id != item.id) {
             procMap[p.id!] = p;

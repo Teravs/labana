@@ -168,10 +168,7 @@ class _ProductFormSheetState extends State<ProductFormSheet> {
     final now = DateTime.now();
     final todayStr =
         '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
-    _effectiveDate =
-        widget.initialRecipeVersion?.effectiveFrom ??
-        widget.initialPrice?.effectiveFrom ??
-        todayStr;
+    _effectiveDate = todayStr;
 
     // Inisialisasi komponen yang sudah ada jika edit
     if (widget.initialItems != null && widget.initialItems!.isNotEmpty) {
@@ -213,6 +210,42 @@ class _ProductFormSheetState extends State<ProductFormSheet> {
     try {
       final ingredients = await _ingredientRepo.getAll(status: 'active');
       final processed = await _processedRepo.getAll(status: 'active');
+
+      // Pastikan bahan mentah nonaktif yang sudah terpakai di resep lama tetap termuat di dropdown
+      final activeIngredientIds = ingredients.map((e) => e.id).toSet();
+      if (widget.initialItems != null) {
+        for (final item in widget.initialItems!) {
+          if (item.ingredientId != null &&
+              !activeIngredientIds.contains(item.ingredientId)) {
+            final inactiveIng = await _ingredientRepo.getById(item.ingredientId!);
+            if (inactiveIng != null) {
+              ingredients.add(
+                inactiveIng.copyWith(name: '${inactiveIng.name} (Nonaktif)'),
+              );
+              activeIngredientIds.add(item.ingredientId!);
+            }
+          }
+        }
+      }
+
+      // Pastikan bahan olahan nonaktif yang sudah terpakai di resep lama tetap termuat di dropdown
+      final activeProcessedIds = processed.map((e) => e.id).toSet();
+      if (widget.initialItems != null) {
+        for (final item in widget.initialItems!) {
+          if (item.processedIngredientId != null &&
+              !activeProcessedIds.contains(item.processedIngredientId)) {
+            final inactiveProc = await _processedRepo.getById(
+              item.processedIngredientId!,
+            );
+            if (inactiveProc != null) {
+              processed.add(
+                inactiveProc.copyWith(name: '${inactiveProc.name} (Nonaktif)'),
+              );
+              activeProcessedIds.add(item.processedIngredientId!);
+            }
+          }
+        }
+      }
 
       final pricesMap = <int, List<IngredientPrice>>{};
       for (final ing in ingredients) {
@@ -294,7 +327,11 @@ class _ProductFormSheetState extends State<ProductFormSheet> {
 
     for (final entry in _componentEntries) {
       if (entry.type == RecipeItem.typeIngredient) {
-        final qty = double.tryParse(entry.quantityController.text.trim()) ?? 0;
+        final qty =
+            double.tryParse(
+              entry.quantityController.text.trim().replaceAll(',', '.'),
+            ) ??
+            0;
         draftItems.add(
           RecipeItem(
             recipeVersionId: 0,
@@ -306,7 +343,11 @@ class _ProductFormSheetState extends State<ProductFormSheet> {
           ),
         );
       } else if (entry.type == RecipeItem.typeProcessed) {
-        final qty = double.tryParse(entry.quantityController.text.trim()) ?? 0;
+        final qty =
+            double.tryParse(
+              entry.quantityController.text.trim().replaceAll(',', '.'),
+            ) ??
+            0;
         draftItems.add(
           RecipeItem(
             recipeVersionId: 0,
@@ -466,7 +507,9 @@ class _ProductFormSheetState extends State<ProductFormSheet> {
           });
           return;
         }
-        final qty = double.tryParse(entry.quantityController.text.trim());
+        final qty = double.tryParse(
+          entry.quantityController.text.trim().replaceAll(',', '.'),
+        );
         if (qty == null || qty <= 0) {
           setState(() {
             _errorMessage =
@@ -492,7 +535,9 @@ class _ProductFormSheetState extends State<ProductFormSheet> {
           });
           return;
         }
-        final qty = double.tryParse(entry.quantityController.text.trim());
+        final qty = double.tryParse(
+          entry.quantityController.text.trim().replaceAll(',', '.'),
+        );
         if (qty == null || qty <= 0) {
           setState(() {
             _errorMessage =

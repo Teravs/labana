@@ -2,7 +2,7 @@ class DatabaseConstants {
   DatabaseConstants._();
 
   static const String databaseName = 'labana.db';
-  static const int databaseVersion = 1;
+  static const int databaseVersion = 2;
 }
 
 class TableNames {

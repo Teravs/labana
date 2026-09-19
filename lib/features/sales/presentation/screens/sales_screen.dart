@@ -26,6 +26,13 @@ class _SalesScreenState extends State<SalesScreen> {
     super.initState();
     _saleRepo = widget.saleRepo ?? SaleRepository();
     _loadSales();
+    SaleRepository.salesChangeNotifier.addListener(_loadSales);
+  }
+
+  @override
+  void dispose() {
+    SaleRepository.salesChangeNotifier.removeListener(_loadSales);
+    super.dispose();
   }
 
   Future<void> _loadSales() async {

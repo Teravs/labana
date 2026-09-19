@@ -82,17 +82,20 @@ class AppPdfFileStorage implements PdfFileStorage {
   }
 
   /// Menghasilkan nama file dasar yang representatif sesuai [ReportData].
-  static String generateBaseFileName(ReportData data) {
+  static String generateBaseFileName(ReportData data, {String? businessName}) {
+    final prefix = (businessName != null && businessName.trim().isNotEmpty)
+        ? sanitizeFileName(businessName.trim())
+        : 'Labana';
     switch (data.periodType) {
       case ReportPeriodType.daily:
-        return 'Laporan-Labana-${data.startDate}';
+        return 'Laporan-$prefix-${data.startDate}';
       case ReportPeriodType.weekly:
-        return 'Laporan-Labana-Mingguan-${data.startDate}-sd-${data.endDate}';
+        return 'Laporan-$prefix-Mingguan-${data.startDate}-sd-${data.endDate}';
       case ReportPeriodType.monthly:
         final monthStr = data.startDate.length >= 7
             ? data.startDate.substring(0, 7)
             : data.startDate;
-        return 'Laporan-Labana-Bulanan-$monthStr';
+        return 'Laporan-$prefix-Bulanan-$monthStr';
     }
   }
 }

@@ -502,14 +502,26 @@ class ProductRepository {
 
       if (sellingPrice != null &&
           (latestPrice == null || latestPrice.sellingPrice != sellingPrice)) {
-        // Harga berubah -> insert harga baru dengan effectiveDate
-        final newPrice = ProductPrice(
-          productId: productId,
-          sellingPrice: sellingPrice,
-          effectiveFrom: effectiveDate,
-          createdAt: now,
-        );
-        finalPrice = await _priceRepo.create(newPrice, executor: txn);
+        if (latestPrice != null &&
+            latestPrice.effectiveFrom == effectiveDate &&
+            latestPrice.id != null) {
+          // Koreksi harga di hari yang sama: perbarui record harga yang sudah ada
+          await _priceRepo.updatePrice(
+            latestPrice.id!,
+            sellingPrice,
+            executor: txn,
+          );
+          finalPrice = latestPrice.copyWith(sellingPrice: sellingPrice);
+        } else {
+          // Harga berubah di tanggal berbeda -> insert harga baru dengan effectiveDate
+          final newPrice = ProductPrice(
+            productId: productId,
+            sellingPrice: sellingPrice,
+            effectiveFrom: effectiveDate,
+            createdAt: now,
+          );
+          finalPrice = await _priceRepo.create(newPrice, executor: txn);
+        }
       } else {
         // Harga tidak berubah -> gunakan record harga yang sudah ada
         if (latestPrice == null) {
@@ -545,9 +557,18 @@ class ProductRepository {
   ) {
     if (oldItems.length != newItems.length) return true;
 
-    for (int i = 0; i < oldItems.length; i++) {
-      final o = oldItems[i];
-      final n = newItems[i];
+    // Sort berdasarkan key deterministik agar urutan input tidak memengaruhi hasil
+    String sortKey(RecipeItem item) =>
+        '${item.componentType}_${item.ingredientId ?? 0}_${item.processedIngredientId ?? 0}_${item.otherCost ?? 0}_${item.quantity ?? 0}_${item.unit ?? ""}_${item.label ?? ""}';
+
+    final sortedOld = List<RecipeItem>.from(oldItems)
+      ..sort((a, b) => sortKey(a).compareTo(sortKey(b)));
+    final sortedNew = List<RecipeItem>.from(newItems)
+      ..sort((a, b) => sortKey(a).compareTo(sortKey(b)));
+
+    for (int i = 0; i < sortedOld.length; i++) {
+      final o = sortedOld[i];
+      final n = sortedNew[i];
 
       if (o.componentType != n.componentType) return true;
       if (o.ingredientId != n.ingredientId) return true;
@@ -555,6 +576,7 @@ class ProductRepository {
       if (o.quantity != n.quantity) return true;
       if (o.unit != n.unit) return true;
       if (o.otherCost != n.otherCost) return true;
+      if (o.label != n.label) return true;
     }
 
     return false;

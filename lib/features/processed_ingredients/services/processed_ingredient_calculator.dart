@@ -110,6 +110,14 @@ class ProcessedIngredientCalculator {
 
     final activeFormats = latestByFormat.values.toList();
 
+    // Urutkan berdasarkan effectiveFrom terbaru, lalu id terbesar
+    // agar step 4 dan 5 selalu deterministik memilih data termutakhir
+    activeFormats.sort((a, b) {
+      final dateComp = b.effectiveFrom.compareTo(a.effectiveFrom);
+      if (dateComp != 0) return dateComp;
+      return (b.id ?? 0).compareTo(a.id ?? 0);
+    });
+
     // 4. Prioritaskan format default
     final defaultFormat = activeFormats.where((p) => p.isDefault).firstOrNull;
     if (defaultFormat != null) {
@@ -124,13 +132,7 @@ class ProcessedIngredientCalculator {
       return exactUnitFormat;
     }
 
-    // 6. Urutkan berdasarkan effectiveFrom terbaru, lalu id terbesar
-    activeFormats.sort((a, b) {
-      final dateComp = b.effectiveFrom.compareTo(a.effectiveFrom);
-      if (dateComp != 0) return dateComp;
-      return (b.id ?? 0).compareTo(a.id ?? 0);
-    });
-
+    // 6. Ambil format terbaru dari list yang sudah terurut
     return activeFormats.first;
   }
 

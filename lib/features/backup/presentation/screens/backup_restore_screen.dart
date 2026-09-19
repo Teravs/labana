@@ -265,13 +265,13 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
         backupFile: file,
         onStateRefresh: () {
           AppSettingsRepository().getBusinessProfile();
-          appReloadNotifier.value++;
         },
       );
 
       if (mounted) {
         await showDialog(
           context: context,
+          barrierDismissible: false,
           builder: (ctx) => AlertDialog(
             icon: const Icon(
               Icons.check_circle_outline_rounded,
@@ -291,6 +291,7 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
           ),
         );
         await _loadLocalBackups();
+        appReloadNotifier.value++;
       }
     } catch (e) {
       if (mounted) {

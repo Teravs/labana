@@ -141,7 +141,6 @@ class _ProcessedIngredientFormSheetState
     MapEntry('ml', 'Mililiter (ml)'),
     MapEntry('liter', 'Liter'),
     MapEntry('pcs', 'Pcs'),
-    MapEntry('pack', 'Pack'),
   ];
 
   @override
